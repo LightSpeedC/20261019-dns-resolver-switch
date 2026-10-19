@@ -51,7 +51,7 @@ export function buildAnswer(query: Buffer, opt: FakeOptions, full: boolean): Buf
 }
 
 export async function startFakeUpstream(opt: FakeOptions): Promise<FakeUpstream> {
-	const udp = dgram.createSocket('udp4');
+	let udp = dgram.createSocket('udp4');
 	const tcp = net.createServer();
 	const timers = new Set<NodeJS.Timeout>();
 	const later = (fn: () => void) => {
@@ -69,11 +69,11 @@ export async function startFakeUpstream(opt: FakeOptions): Promise<FakeUpstream>
 			await new Promise<void>((r) => tcp.close(() => r()));
 		},
 	};
-	udp.on('message', (msg, rinfo) => {
+	const onUdp = (msg: Buffer, rinfo: dgram.RemoteInfo) => {
 		self.udpHits++;
 		if (opt.behavior === 'silent') return;
 		later(() => udp.send(buildAnswer(msg, opt, opt.behavior !== 'truncate'), rinfo.port, rinfo.address));
-	});
+	};
 	tcp.on('connection', (sock) => {
 		let buf = Buffer.alloc(0);
 		sock.on('error', () => {});
@@ -93,9 +93,22 @@ export async function startFakeUpstream(opt: FakeOptions): Promise<FakeUpstream>
 			}
 		});
 	});
-	await new Promise<void>((r) => tcp.listen(0, '127.0.0.1', () => r()));
-	self.port = (tcp.address() as AddressInfo).port;
-	await new Promise<void>((r) => udp.bind(self.port, '127.0.0.1', () => r()));
+	// TCP で取った空き番号が UDP では使用中のことがある（上流へ問い合わせる一時ソケット等）。
+	// bind の失敗を受けないと完了を待ったまま止まるので、別の番号で取り直す
+	for (let attempt = 1; ; attempt++) {
+		await new Promise<void>((r) => tcp.listen(0, '127.0.0.1', () => r()));
+		self.port = (tcp.address() as AddressInfo).port;
+		const bound = await new Promise<boolean>((r) => {
+			udp.once('error', () => r(false));
+			udp.bind(self.port, '127.0.0.1', () => r(true));
+		});
+		if (bound) break;
+		await new Promise<void>((r) => tcp.close(() => r()));
+		udp = dgram.createSocket('udp4');
+		if (attempt >= 10) throw new Error('偽の上流のポートを取れませんでした');
+	}
+	udp.removeAllListeners('error');
+	udp.on('message', onUdp);
 	return self;
 }
 
