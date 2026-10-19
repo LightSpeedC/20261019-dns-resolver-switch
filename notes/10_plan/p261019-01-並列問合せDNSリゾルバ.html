@@ -1,0 +1,172 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 計画: 並列問合せ DNS リゾルバ</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--ink-soft:#4a5568;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:var(--navy1);--accent2:var(--navy2);--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(224,78%,25%);--accent2:hsl(224,58%,55%);--soft:hsl(224,28%,95%);}
+.ch03{--accent:hsl(168,78%,25%);--accent2:hsl(168,58%,55%);--soft:hsl(168,28%,95%);}
+.ch04{--accent:hsl(112,78%,25%);--accent2:hsl(112,58%,55%);--soft:hsl(112,28%,95%);}
+.ch05{--accent:hsl(56,78%,25%);--accent2:hsl(56,58%,55%);--soft:hsl(56,28%,95%);}
+.ch06{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+h2{border-left:6px solid var(--accent,#12224d);background:linear-gradient(90deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);padding:6px 12px;margin:30px 0 12px;font-size:1.15em;}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+pre{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-left:5px solid var(--accent2,#2f5fbf);padding:13px 16px;overflow-x:auto;}
+pre code{background:transparent;border:none;color:var(--ink,#1c2330);padding:0;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.nowrap{white-space:nowrap;}
+.callout{border-left:6px solid var(--accent,#12224d);background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-radius:0 8px 8px 0;padding:8px 16px;margin:12px 0;}
+.callout strong{color:var(--accent,#12224d);background:transparent;}
+svg{max-width:100%;height:auto;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>計画: 並列問合せ DNS リゾルバ（Node.js）</h1>
+<p class="lead">受けた問合せを複数の上流 DNS へ同時に投げ、最初に返った応答を返す。</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">目的と範囲</a></li>
+<li class="ch02"><a href="#ch02">動作の流れ</a></li>
+<li class="ch03"><a href="#ch03">上流と既定値</a></li>
+<li class="ch04"><a href="#ch04">構成と設定</a></li>
+<li class="ch05"><a href="#ch05">テスト</a></li>
+<li class="ch06"><a href="#ch06">決めてほしいこと</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>目的と範囲</h1>
+<ul>
+<li>手元の PC（または LAN）から使うキャッシュ付きの DNS フォワーダ。<strong>再帰解決はしない</strong>（上流に任せる）</li>
+<li>上流 3 系統を同時に問い合わせ、<strong>最初に返った正常な応答</strong>を返す。応答が無い系統は代替に切り替える</li>
+<li>言語は TypeScript（node で直接実行、<code>tsc</code> で型チェック）。DNS メッセージは <code>node:dgram</code> と自前の最小パーサで扱い、依存パッケージを増やさない（パースは ID の書き換えと TTL の読み取りに要る範囲だけ）</li>
+<li>範囲外: DNSSEC 検証、権威サーバ機能、DoH/DoT の受け側</li>
+</ul>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>動作の流れ</h1>
+<svg viewBox="0 0 760 200" role="img" aria-label="流れ図">
+<defs><linearGradient id="g-p261019-01-1a" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="var(--accent)"/><stop offset="1" stop-color="var(--accent2)"/></linearGradient></defs>
+<rect x="10" y="75" width="120" height="50" rx="8" fill="url(#g-p261019-01-1a)"/><text x="70" y="105" fill="#fff" text-anchor="middle" font-size="14">クライアント</text>
+<rect x="200" y="75" width="150" height="50" rx="8" fill="url(#g-p261019-01-1a)"/><text x="275" y="98" fill="#fff" text-anchor="middle" font-size="14">本リゾルバ</text><text x="275" y="116" fill="#fff" text-anchor="middle" font-size="12">キャッシュ・競争</text>
+<rect x="450" y="15" width="290" height="44" rx="8" fill="url(#g-p261019-01-1a)"/><text x="595" y="42" fill="#fff" text-anchor="middle" font-size="13">上流A（主 / 代替）</text>
+<rect x="450" y="78" width="290" height="44" rx="8" fill="url(#g-p261019-01-1a)"/><text x="595" y="105" fill="#fff" text-anchor="middle" font-size="13">上流B（主 / 代替）</text>
+<rect x="450" y="141" width="290" height="44" rx="8" fill="url(#g-p261019-01-1a)"/><text x="595" y="168" fill="#fff" text-anchor="middle" font-size="13">上流C（主 / 代替）</text>
+<g stroke="#4a5568" stroke-width="2"><line x1="130" y1="100" x2="200" y2="100"/><line x1="350" y1="100" x2="450" y2="37"/><line x1="350" y1="100" x2="450" y2="100"/><line x1="350" y1="100" x2="450" y2="163"/></g>
+</svg>
+<ol>
+<li>UDP 53（設定可）で受ける。キャッシュに有効な応答があれば TTL を減らして返す</li>
+<li>無ければ 3 系統の<strong>主</strong>へ同時に送る（ID は系統ごとに振り直し、返信を照合）</li>
+<li>系統ごとに、主が一定時間（例 300 ms）返さないか失敗したら、その系統の<strong>代替</strong>へ送る（ヘッジ）</li>
+<li>最初に返った<strong>採用可能な応答</strong>を、ID を元に戻してクライアントへ返し、残りは捨てる</li>
+<li>全滅または全体の期限（例 2 s）で <code>SERVFAIL</code> を返す</li>
+</ol>
+<h2>採用可能な応答</h2>
+<ul>
+<li>上流ごとに解決できる範囲が違う（担当外の名前には「解決できない」が返る）。そのため<strong>解決できた応答だけを即座に採用する</strong></li>
+<li>解決できた応答: <code>NOERROR</code> で回答部に質問の型（または CNAME）を含むもの</li>
+<li>解決できない応答: <code>NXDOMAIN</code>、回答部が空の <code>NOERROR</code>（NODATA）、<code>SERVFAIL</code>、<code>REFUSED</code>、期限切れ。採用せず他の系統を待つ</li>
+<li><strong>3 系統（代替を含む）がすべて解決できなかったときだけ</strong>、解決できないことを返す。返す内容は <code>NXDOMAIN</code> ＞ NODATA ＞ <code>SERVFAIL</code> の順で、届いた中で最も強い否定を選ぶ（全系統が無応答なら <code>SERVFAIL</code>）</li>
+<li>否定応答はキャッシュしない（第 1 段階）。担当の上流が一時的に落ちていただけの場合に、否定を返し続けないため</li>
+<li>TC ビット付きは、その上流へ TCP で取り直す（大きな応答に対応）</li>
+<li>クライアントから TCP で来た問合せも受ける（TCP の長さ前置きを扱う）</li>
+</ul>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>上流と既定値</h1>
+<p>1 系統＝主と代替の 2 つ。既定値の案（設定で差し替え可）:</p>
+<div class="tablewrap"><table>
+<thead><tr><th>系統</th><th>主</th><th>代替</th></tr></thead>
+<tbody>
+<tr><td>A: Google</td><td class="nowrap">8.8.8.8</td><td class="nowrap">8.8.4.4</td></tr>
+<tr><td>B: Cloudflare</td><td class="nowrap">1.1.1.1</td><td class="nowrap">1.0.0.1</td></tr>
+<tr><td>C: Quad9</td><td class="nowrap">9.9.9.9</td><td class="nowrap">149.112.112.112</td></tr>
+</tbody></table></div>
+<p>「2 つのドメイン名の既定値」の解釈が決まっていない（<a href="#ch06">決めてほしいこと</a> の 1）。</p>
+</section>
+
+<section class="ch04" id="ch04">
+<h1>構成と設定</h1>
+<pre><code class="language-text">src/
+  main.ts          起動・引数（--port 等。process.title に反映）
+  server.ts        UDP/TCP の受け口
+  race.ts          並列問合せ・ヘッジ・期限
+  upstream.ts      上流への送受信（UDP、TC 時 TCP）
+  dns-message.ts   ヘッダ・質問部・TTL の読み書き
+  cache.ts         TTL 付きキャッシュ（件数上限あり）
+  config.ts        設定の読み込みと既定値
+config/resolver.json  上流・待ち時間・ポート
+tests/              node:test（bun test でも確認）
+tools/40_test/run-tests.ps1 / .cmd</code></pre>
+<ul>
+<li>ログは JST <code>yyyy/mm/dd hh:mm:ss.ccc</code>。問合せ名・勝った上流・所要 ms を出す</li>
+<li>上流ごとの勝率・平均応答時間を記録し、起動中に参照できるようにする（第 2 段階）</li>
+</ul>
+<div class="callout"><strong>ポート 53</strong> は Windows では管理者権限や既存サービス（ICS 等）と衝突しうる。開発中は 5353 以外の高位ポート（例 10053）を既定にする。</div>
+</section>
+
+<section class="ch05" id="ch05">
+<h1>テスト</h1>
+<ul>
+<li>上流を偽の UDP サーバ（遅延・失敗・SERVFAIL を指定できる）で立て、実ネットに出ない</li>
+<li>保証すること: 一番速い上流の解決できた応答が返る ／ 先に NXDOMAIN が返っても、後から解決できた系統の応答が返る ／ 全系統が NXDOMAIN なら NXDOMAIN ／ 主が遅いと代替へ切り替わる ／ 全滅で SERVFAIL ／ 返す ID が元の ID ／ キャッシュが TTL で切れる ／ TC で TCP に取り直す</li>
+</ul>
+</section>
+
+<section class="ch06" id="ch06">
+<h1>決めてほしいこと</h1>
+<h2>決定（2026-10-19）</h2>
+<ul>
+<li>上流は IP アドレスで持つ。primary / secondary のペアを 3 組（組数は設定で変えられる）</li>
+<li>代替へ送る条件は 2-A（主が一定時間返さなければ代替にも送る）</li>
+<li>待受けは 3-B（LAN にも公開）。開いたリゾルバとして外から悪用されないよう、受け付ける送信元を、設定に書く許可リスト（サブネットを CIDR で複数、例 <code>["127.0.0.0/8", "192.0.2.0/24"]</code>）で絞る。リストに無い送信元は、UDP は黙って捨て、TCP は接続を閉じる</li>
+<li>受け口は UDP と TCP の両方を同じポートで待ち受ける（<code>node:dgram</code> と <code>node:net</code>）。TCP は 2 バイトの長さ前置きを扱い、1 本の接続で続けて来る問合せにも応える</li>
+</ul>
+<h2>当初の選択肢</h2>
+<ol>
+<li>「3 つの DNS resolver は 2 つのドメイン名のデフォルト値を持つ」の意味
+<ul>
+<li><strong>1-A</strong>: 各系統が主・代替の 2 つの既定アドレスを持つ（上表。3×2＝6 で「代替で 6 つ」と合う）。推す理由: 依頼文の件数と一致する</li>
+<li><strong>1-B</strong>: 上流をアドレスでなくホスト名（<code>dns.google</code> 等）で持ち、DoH/DoT で問い合わせる</li>
+<li><strong>1-C</strong>: 系統ごとに 2 つのドメイン（名前の接尾辞）を担当させ、そのドメインは特定系統へ振り分ける</li>
+</ul></li>
+<li>代替へ切り替える条件
+<ul>
+<li><strong>2-A</strong>: 主が一定時間返さなければ代替も送る（ヘッジ）。推す理由: 遅延を抑えつつ送信量は増えにくい</li>
+<li><strong>2-B</strong>: 最初から 6 つ全部へ同時に送る</li>
+</ul></li>
+<li>待受けの範囲: <strong>3-A</strong> 127.0.0.1 のみ（推す理由: 外から使われない） ／ <strong>3-B</strong> LAN にも公開</li>
+</ol>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>

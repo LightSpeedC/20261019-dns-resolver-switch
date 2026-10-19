@@ -1,0 +1,80 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 状態</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(140,78%,25%);--accent2:hsl(140,58%,55%);--soft:hsl(140,28%,95%);}
+.ch03{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.badge{display:inline-block;padding:0 8px;border-radius:6px;color:#fff;font-weight:700;white-space:nowrap;}
+.badge.b-ok{background:linear-gradient(100deg,#1d7a3c,#45b56c);color:#fff;}
+.badge.b-warn{background:linear-gradient(100deg,#b8620a,#f0a548);color:#fff;}
+.badge.b-none{background:linear-gradient(100deg,#5a6472,#97a1ae);color:#fff;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>20261019-dns-resolver-switch 状態</h1>
+<p class="lead">いまどうなっているか。これからやることは課題に置く。</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">進捗</a></li>
+<li class="ch02"><a href="#ch02">テスト</a></li>
+<li class="ch03"><a href="#ch03">関連資料</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>進捗</h1>
+<div class="tablewrap"><table>
+<thead><tr><th>項目</th><th>状態</th><th>備考</th></tr></thead>
+<tbody>
+<tr><td>計画</td><td><span class="badge b-ok">済</span></td><td>2026-10-19 承認</td></tr>
+<tr><td>初期化一式</td><td><span class="badge b-ok">済</span></td><td></td></tr>
+<tr><td>実装</td><td><span class="badge b-warn">着手</span></td><td></td></tr>
+</tbody></table></div>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>テスト</h1>
+<p>未実行。</p>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>関連資料</h1>
+<ul>
+<li><a href="../10_plan/p261019-01-並列問合せDNSリゾルバ.html">計画: 並列問合せ DNS リゾルバ</a></li>
+<li><a href="../40_issues/issues.html">課題</a></li>
+</ul>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>
