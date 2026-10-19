@@ -4,6 +4,7 @@ logs/
 _*
 node_modules/
 dist/
+deploy/*.exe
 
 .claude/*
 !.claude/settings.json

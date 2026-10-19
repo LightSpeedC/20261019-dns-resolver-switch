@@ -1,0 +1,45 @@
+<service>
+  <id>node-dns-resolver-switch</id>
+  <name> dns-resolver-switch DNS リゾルバ</name>
+  <description>上流 DNS の複数の組へ同時に問い合わせ、最初に解決できた応答を返す（UDP・TCP の 53 番）</description>
+
+  <!--
+    ai-chat-lite・20260905-windows-pc-memory-inspection の winsw の定義に倣う。
+    このファイルは winsw の実行ファイルと同じ名前（拡張子だけ .xml）で、同じフォルダ（deploy/）に置き、Git に入れる。
+    同じフォルダの exe（node の複製・winsw の複製）は Git に入れない（.gitignore）。
+    パスは書かない。%BASE% は winsw の実行ファイルがあるフォルダ（deploy/）を指す。
+    install は実体のフォルダ（C:\...）で行う。subst のドライブはサービスから見えず、登録すると起動に失敗する。
+
+    node の複製をサービス名の exe にするのは、プロセス一覧でサービスと見分けられるようにするため。
+    設定は config/resolver.json（待受け 0.0.0.0・許可リスト）。ポートだけ引数で 53 にする。
+  -->
+  <executable>node-dns-resolver-switch.exe</executable>
+  <arguments>"%BASE%\..\src\main.ts" --port 53</arguments>
+
+  <!--
+    logpath の相対パスは、サービスのカレント（C:\Windows\System32）を基準に解決されるため、%BASE% を前に付ける。
+    標準出力・標準エラーがここへ回る。問合せ 1 件ごとの行と、10 分ごとの集計が日時（JST）付きで出る。
+  -->
+  <logpath>%BASE%\..\logs\node-dns-resolver-switch</logpath>
+  <log mode="roll-by-size">
+    <sizeThreshold>10240</sizeThreshold>
+    <keepFiles>8</keepFiles>
+  </log>
+
+  <!--
+    終了コード 0 以外なら 10 秒後に起動し直す。winsw は終了コードを区別しないので、
+    起動の失敗（終了コード 2: 53 番が使用中など）でも起動し直し続け、ログに失敗が積もる。
+    Windows のサービス回復は 3 段階。3 つ書けば 3 段目まで埋まり、何度落としても起動し直す。
+  -->
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+  <onfailure action="restart" delay="10 sec"/>
+
+  <!-- 1 分間動き続けたら失敗の回数を数え直す -->
+  <resetfailure>1 min</resetfailure>
+
+  <startmode>Automatic</startmode>
+
+  <!-- 停止のときは Ctrl+C 相当を送る。停止時の集計を記録し、受け口を閉じてから終わる（i261019-04） -->
+  <stopparentprocessfirst>true</stopparentprocessfirst>
+</service>
