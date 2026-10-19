@@ -20,6 +20,8 @@ export interface FakeOptions {
 	/** resolve のときに返す A レコードのアドレス */
 	answer?: string;
 	ttl?: number;
+	/** true なら UDP には答えず、TCP だけで答える（UDP に対応していない上流） */
+	noUdp?: boolean;
 }
 
 /** 問合せに対する応答を組み立てる。full=false のときは TC を立てて回答部を空にする */
@@ -71,7 +73,7 @@ export async function startFakeUpstream(opt: FakeOptions): Promise<FakeUpstream>
 	};
 	const onUdp = (msg: Buffer, rinfo: dgram.RemoteInfo) => {
 		self.udpHits++;
-		if (opt.behavior === 'silent') return;
+		if (opt.behavior === 'silent' || opt.noUdp) return;
 		later(() => udp.send(buildAnswer(msg, opt, opt.behavior !== 'truncate'), rinfo.port, rinfo.address));
 	};
 	tcp.on('connection', (sock) => {

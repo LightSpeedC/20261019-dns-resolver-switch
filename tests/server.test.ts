@@ -96,6 +96,28 @@ test('許可リストに無い送信元には、UDP は返事をせず、TCP は
 	assert.equal(rs.length, 0);
 });
 
+test('起動時に UDP に答えない上流を見つけ、その上流には最初から TCP で問い合わせる', async () => {
+	const tcpOnly = await startFakeUpstream({ behavior: 'resolve', noUdp: true, answer: '192.0.2.60' });
+	closers.push(() => tcpOnly.close());
+	const config = parseConfig({
+		listen: { host: '127.0.0.1', port: 0 },
+		allow: ['127.0.0.0/8'],
+		hedgeMs: 100,
+		timeoutMs: 800,
+		upstreams: [{ name: 'T', primary: `127.0.0.1:${tcpOnly.port}`, secondary: `127.0.0.1:${tcpOnly.port}` }],
+	});
+	const server = await startServer(config, () => {});
+	closers.push(() => server.close());
+	const probeHits = tcpOnly.udpHits;
+	const t0 = Date.now();
+	const r = await askUdp(server.port, buildQuery('t.example', TYPE.A, 8));
+	assert.ok(r);
+	assert.equal(classify(r), 'resolved');
+	assert.equal(tcpOnly.udpHits, probeHits);
+	// UDP を待たないので、secondary へ送るまでの待ち時間より早く返る
+	assert.ok(Date.now() - t0 < 100);
+});
+
 test('壊れたメッセージを受けても落ちず、次の問合せに答える', async () => {
 	const { server } = await setup(['127.0.0.0/8']);
 	assert.equal(await askUdp(server.port, Buffer.from([1, 2, 3]), 300), null);

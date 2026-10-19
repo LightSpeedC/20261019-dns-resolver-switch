@@ -36,7 +36,9 @@ test('resolveRace は上流ごとの試行の結果を onAttempt で知らせる
 	const slow = await startFakeUpstream({ behavior: 'resolve', delayMs: 200 });
 	started.push(fast, slow);
 	const seen: Attempt[] = [];
-	const g = (name: string, u: FakeUpstream) => ({ name, primary: { host: u.host, port: u.port }, secondary: { host: u.host, port: u.port } });
+	const g = (name: string, u: FakeUpstream) => ({
+		name, primary: { host: u.host, port: u.port }, secondary: { host: u.host, port: u.port }, transport: 'auto' as const,
+	});
 	await resolveRace(buildQuery('a.example', TYPE.A, 1), [g('F', fast), g('S', slow)], {
 		hedgeMs: 100, timeoutMs: 800, onAttempt: (a) => seen.push(a),
 	});

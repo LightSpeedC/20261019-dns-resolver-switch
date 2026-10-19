@@ -8,10 +8,14 @@ export interface Address {
 	port: number;
 }
 
+/** auto は起動時と動いている間に確かめて決める。udp・tcp は決め打ち */
+export type TransportSetting = 'auto' | 'udp' | 'tcp';
+
 export interface Group {
 	name: string;
 	primary: Address;
 	secondary: Address;
+	transport: TransportSetting;
 }
 
 export interface Config {
@@ -32,6 +36,7 @@ interface RawGroup {
 	name?: string;
 	primary?: string;
 	secondary?: string;
+	transport?: string;
 }
 
 interface RawConfig {
@@ -93,7 +98,7 @@ function nonNegative(value: number, what: string): number {
 
 export function parseConfig(input: unknown): Config {
 	const raw = (input ?? {}) as RawConfig;
-	const groups = raw.upstreams ?? DEFAULT_RAW.upstreams;
+	const groups: RawGroup[] = raw.upstreams ?? DEFAULT_RAW.upstreams;
 	if (!Array.isArray(groups) || groups.length === 0) throw new Error('上流の組が 1 つもありません');
 	const config: Config = {
 		listen: {
@@ -107,7 +112,11 @@ export function parseConfig(input: unknown): Config {
 		statsIntervalMs: nonNegative(raw.statsIntervalMs ?? DEFAULT_RAW.statsIntervalMs, 'statsIntervalMs'),
 		upstreams: groups.map((g, i) => {
 			if (!g.primary || !g.secondary) throw new Error(`上流の組 ${i + 1} に primary と secondary を書いてください`);
-			return { name: g.name ?? `group${i + 1}`, primary: parseAddress(g.primary), secondary: parseAddress(g.secondary) };
+			const transport = (g.transport ?? 'auto') as TransportSetting;
+			if (!['auto', 'udp', 'tcp'].includes(transport)) {
+				throw new Error(`上流の組 ${i + 1} の transport は auto・udp・tcp のどれかにしてください: ${g.transport}`);
+			}
+			return { name: g.name ?? `group${i + 1}`, primary: parseAddress(g.primary), secondary: parseAddress(g.secondary), transport };
 		}),
 	};
 	if (!net.isIP(config.listen.host)) throw new Error(`listen.host は IP アドレスにしてください: ${config.listen.host}`);

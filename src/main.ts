@@ -24,6 +24,7 @@ const config = parseConfig({
 		name: g.name,
 		primary: `[${g.primary.host}]:${g.primary.port}`,
 		secondary: `[${g.secondary.host}]:${g.secondary.port}`,
+		transport: g.transport,
 	})),
 });
 

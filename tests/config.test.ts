@@ -34,6 +34,13 @@ test('統計をログへ出す間隔の既定は 10 分、0 で止められる',
 	assert.throws(() => parseConfig({ statsIntervalMs: -1 }));
 });
 
+test('組ごとの transport は既定が auto、udp・tcp で決め打ちでき、それ以外は例外にする', () => {
+	assert.ok(parseConfig({}).upstreams.every((g) => g.transport === 'auto'));
+	const c = parseConfig({ upstreams: [{ primary: '192.0.2.1', secondary: '192.0.2.2', transport: 'tcp' }] });
+	assert.equal(c.upstreams[0].transport, 'tcp');
+	assert.throws(() => parseConfig({ upstreams: [{ primary: '192.0.2.1', secondary: '192.0.2.2', transport: 'quic' }] }));
+});
+
 test('上流の組が 0 件・待ち時間の逆転は起動時に例外にする', () => {
 	assert.throws(() => parseConfig({ upstreams: [] }));
 	assert.throws(() => parseConfig({ hedgeMs: 3000, timeoutMs: 1000 }));

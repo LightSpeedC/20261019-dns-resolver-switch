@@ -15,7 +15,7 @@ async function up(opt: FakeOptions): Promise<FakeUpstream> {
 }
 
 function group(name: string, p: FakeUpstream, s: FakeUpstream): Group {
-	return { name, primary: { host: p.host, port: p.port }, secondary: { host: s.host, port: s.port } };
+	return { name, primary: { host: p.host, port: p.port }, secondary: { host: s.host, port: s.port }, transport: 'auto' };
 }
 
 const opts = { hedgeMs: 100, timeoutMs: 800 };

@@ -9,6 +9,7 @@ import { hasEdns, isResponse, parseQuestion, truncateForUdp, typeName, udpLimit 
 import { consoleLogger, type Logger } from './log.ts';
 import { resolveRace, type Attempt } from './race.ts';
 import { UpstreamStats } from './stats.ts';
+import { DEFAULT_TRANSPORT_OPTIONS, TransportModes } from './transport.ts';
 
 export interface RunningServer {
 	port: number;
@@ -23,6 +24,14 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	const cache = new DnsCache({ maxEntries: config.cacheMaxEntries });
 	const stats = new UpstreamStats();
 	const raceOptions = { ...config, onAttempt: (a: Attempt) => stats.attempt(a) };
+	// 待ち受けを始める前に、UDP に答えない上流を見つけて TCP 専用にする
+	const modes = new TransportModes(DEFAULT_TRANSPORT_OPTIONS, log);
+	for (const g of config.upstreams) {
+		modes.watch(g.primary, g.transport);
+		modes.watch(g.secondary, g.transport);
+	}
+	await modes.probeAll();
+	modes.start();
 	const statsTimer = config.statsIntervalMs > 0 ? setInterval(() => log('INFO', stats.summary()), config.statsIntervalMs) : null;
 	statsTimer?.unref();
 
@@ -41,7 +50,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 			log('INFO', `${transport} ${from} ${label} resolved cache`);
 			return cached;
 		}
-		const r = await resolveRace(query, config.upstreams, raceOptions);
+		const r = await resolveRace(query, config.upstreams, raceOptions, modes.send);
 		stats.query(r.outcome === 'resolved' ? r.winner : undefined);
 		if (r.outcome === 'resolved') cache.set(query, r.response);
 		log(r.outcome === 'servfail' ? 'WARN' : 'INFO', `${transport} ${from} ${label} ${r.outcome} ${r.winner ?? '-'} ${r.elapsedMs}ms`);
@@ -101,6 +110,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 		port,
 		close: async () => {
 			if (statsTimer) clearInterval(statsTimer);
+			await modes.stop();
 			log('INFO', stats.summary());
 			for (const s of sockets) s.destroy();
 			await new Promise<void>((r) => udp.close(() => r()));
