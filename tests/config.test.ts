@@ -28,6 +28,12 @@ test('指定した項目だけを既定値に上書きする', () => {
 	assert.equal(c.timeoutMs, DEFAULT_CONFIG.timeoutMs);
 });
 
+test('統計をログへ出す間隔の既定は 10 分、0 で止められる', () => {
+	assert.equal(parseConfig({}).statsIntervalMs, 600_000);
+	assert.equal(parseConfig({ statsIntervalMs: 0 }).statsIntervalMs, 0);
+	assert.throws(() => parseConfig({ statsIntervalMs: -1 }));
+});
+
 test('上流の組が 0 件・待ち時間の逆転は起動時に例外にする', () => {
 	assert.throws(() => parseConfig({ upstreams: [] }));
 	assert.throws(() => parseConfig({ hedgeMs: 3000, timeoutMs: 1000 }));

@@ -7,7 +7,8 @@ import { buildAllowList } from './cidr.ts';
 import type { Config } from './config.ts';
 import { isResponse, parseQuestion, truncateForUdp, typeName, udpLimit } from './dns-message.ts';
 import { consoleLogger, type Logger } from './log.ts';
-import { resolveRace } from './race.ts';
+import { resolveRace, type Attempt } from './race.ts';
+import { UpstreamStats } from './stats.ts';
 
 export interface RunningServer {
 	port: number;
@@ -20,6 +21,10 @@ const TCP_IDLE_MS = 10_000;
 export async function startServer(config: Config, log: Logger = consoleLogger): Promise<RunningServer> {
 	const allow = buildAllowList(config.allow);
 	const cache = new DnsCache({ maxEntries: config.cacheMaxEntries });
+	const stats = new UpstreamStats();
+	const raceOptions = { ...config, onAttempt: (a: Attempt) => stats.attempt(a) };
+	const statsTimer = config.statsIntervalMs > 0 ? setInterval(() => log('INFO', stats.summary()), config.statsIntervalMs) : null;
+	statsTimer?.unref();
 
 	const handle = async (query: Buffer, transport: string, from: string): Promise<Buffer | null> => {
 		let label: string;
@@ -36,7 +41,8 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 			log('INFO', `${transport} ${from} ${label} resolved cache`);
 			return cached;
 		}
-		const r = await resolveRace(query, config.upstreams, config);
+		const r = await resolveRace(query, config.upstreams, raceOptions);
+		stats.query(r.outcome === 'resolved' ? r.winner : undefined);
 		if (r.outcome === 'resolved') cache.set(query, r.response);
 		log(r.outcome === 'servfail' ? 'WARN' : 'INFO', `${transport} ${from} ${label} ${r.outcome} ${r.winner ?? '-'} ${r.elapsedMs}ms`);
 		return r.response;
@@ -94,6 +100,8 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	return {
 		port,
 		close: async () => {
+			if (statsTimer) clearInterval(statsTimer);
+			log('INFO', stats.summary());
 			for (const s of sockets) s.destroy();
 			await new Promise<void>((r) => udp.close(() => r()));
 			await new Promise<void>((r) => tcp.close(() => r()));

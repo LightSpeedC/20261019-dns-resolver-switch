@@ -23,6 +23,8 @@ export interface Config {
 	/** 1 件の問合せ全体の期限。過ぎたら届いた中で最も強い否定か SERVFAIL を返す */
 	timeoutMs: number;
 	cacheMaxEntries: number;
+	/** 上流ごとの集計をログへ出す間隔。0 で止める（停止時には出す） */
+	statsIntervalMs: number;
 	upstreams: Group[];
 }
 
@@ -38,6 +40,7 @@ interface RawConfig {
 	hedgeMs?: number;
 	timeoutMs?: number;
 	cacheMaxEntries?: number;
+	statsIntervalMs?: number;
 	upstreams?: RawGroup[];
 }
 
@@ -48,6 +51,7 @@ const DEFAULT_RAW = {
 	hedgeMs: 300,
 	timeoutMs: 2000,
 	cacheMaxEntries: 10000,
+	statsIntervalMs: 600_000,
 	upstreams: [
 		{ name: 'google', primary: '8.8.8.8', secondary: '8.8.4.4' },
 		{ name: 'cloudflare', primary: '1.1.1.1', secondary: '1.0.0.1' },
@@ -82,6 +86,11 @@ function positive(value: number, what: string): number {
 	return value;
 }
 
+function nonNegative(value: number, what: string): number {
+	if (!Number.isFinite(value) || value < 0) throw new Error(`${what} は 0 以上にしてください: ${value}`);
+	return value;
+}
+
 export function parseConfig(input: unknown): Config {
 	const raw = (input ?? {}) as RawConfig;
 	const groups = raw.upstreams ?? DEFAULT_RAW.upstreams;
@@ -95,6 +104,7 @@ export function parseConfig(input: unknown): Config {
 		hedgeMs: positive(raw.hedgeMs ?? DEFAULT_RAW.hedgeMs, 'hedgeMs'),
 		timeoutMs: positive(raw.timeoutMs ?? DEFAULT_RAW.timeoutMs, 'timeoutMs'),
 		cacheMaxEntries: positive(raw.cacheMaxEntries ?? DEFAULT_RAW.cacheMaxEntries, 'cacheMaxEntries'),
+		statsIntervalMs: nonNegative(raw.statsIntervalMs ?? DEFAULT_RAW.statsIntervalMs, 'statsIntervalMs'),
 		upstreams: groups.map((g, i) => {
 			if (!g.primary || !g.secondary) throw new Error(`上流の組 ${i + 1} に primary と secondary を書いてください`);
 			return { name: g.name ?? `group${i + 1}`, primary: parseAddress(g.primary), secondary: parseAddress(g.secondary) };
