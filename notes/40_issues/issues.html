@@ -1,0 +1,57 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 課題</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.ministrip{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:6px 14px;border-radius:8px;margin:26px 0 0;font-weight:700;}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:20px 0 34px;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+summary{cursor:pointer;font-weight:700;color:var(--ink,#1c2330);background:transparent;}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+.badge{display:inline-block;padding:0 8px;border-radius:6px;color:#fff;font-weight:700;white-space:nowrap;}
+.badge.b-none{background:linear-gradient(100deg,#5a6472,#97a1ae);color:#fff;}
+.badge.b-warn{background:linear-gradient(100deg,#b8620a,#f0a548);color:#fff;}
+.badge.b-ok{background:linear-gradient(100deg,#1d7a3c,#45b56c);color:#fff;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>20261019-dns-resolver-switch 課題</h1>
+<p class="lead">これから解決すること。未 2 件 / 着手 0 件 / 済 0 件。</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+<div class="ministrip">動作確認（2 件）</div>
+<section class="ch01" id="ch01">
+<h1>動作確認</h1>
+<details class="md-flat" open>
+<summary><span class="no">i261019-01</span> <span class="badge b-none">未</span> Windows の nslookup から問い合わせると応答が無い</summary>
+<p><code>nslookup -port=10053 example.org. 127.0.0.1</code> が「No response from server」になる。サーバのログに問合せが 1 行も出ないので、問合せがサーバに届いていない。<code>tools/50_run/query.ts</code> からは UDP・TCP とも届き、解決できる。nslookup が送る先（ポート・アドレス）を調べる。</p>
+<ul>
+<li><span class="badge b-none">未</span> nslookup が実際に送っている宛先を確かめる</li>
+<li><span class="badge b-none">未</span> ポート 53 で起動し、OS の DNS 設定から使えるかを確かめる</li>
+</ul>
+</details>
+<details class="md-flat" open>
+<summary><span class="no">i261019-02</span> <span class="badge b-none">未</span> 上流ごとの勝率・平均応答時間を記録して見られるようにする</summary>
+<p>計画の第 2 段階。記録の置き場（ログだけ・ファイル・問合せで見る口）と、見せ方を決める。</p>
+</details>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>

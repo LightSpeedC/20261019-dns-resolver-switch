@@ -1,0 +1,75 @@
+# dns-resolver-switch
+
+上流 DNS の複数の組へ同時に問い合わせ、最初に解決できた応答を返す Node.js 製のリゾルバ。
+
+> 📅 作成: 2026-10-19 / 更新: 2026-10-19
+
+[⌂](../)
+
+## 何をするか
+
+- 受けた問合せを、上流の組（primary / secondary の IP アドレスの組。既定は 3 組）へ同時に送り、**最初に解決できた応答**を返す
+- 上流ごとに解決できる範囲が違ってもよい。NXDOMAIN や回答の無い応答は「その上流では解決できなかった」と読み、ほかの組を待つ。**全組が解決できなかったときだけ**、届いた中で最も強い否定（NXDOMAIN ＞ NODATA ＞ SERVFAIL）を返す
+- primary が一定時間（既定 300 ms）返さないか解決できなければ、その組の secondary にも送る
+- UDP と TCP の両方を同じポートで受ける。上流の応答が切り詰め（TC）なら TCP で取り直す
+- 解決できた応答は TTL のあいだキャッシュする。否定応答はキャッシュしない
+- 受け付ける送信元は、サブネット（CIDR）の許可リストで絞る
+
+## 使い方
+
+Node.js（TypeScript をそのまま実行できる版。動作を確かめたのは v26.11.1）。実行時の依存パッケージは無い。
+
+```shell
+node src/main.ts                                  # config/resolver.json で起動
+node src/main.ts --port 53 --host 0.0.0.0         # 待受けだけを変える
+node src/main.ts --config path/to/resolver.json   # 別の設定で起動
+node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）
+```
+
+## 設定（config/resolver.json）
+
+| 項目 | 既定値 | 意味 |
+|---|---|---|
+| `listen` | 0.0.0.0:10053 | 待ち受けるアドレスとポート（UDP・TCP 共通） |
+| `allow` | 127.0.0.0/8, ::1/128, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16 | 受け付ける送信元のサブネット。外れた送信元には UDP は返事をせず、TCP は接続を閉じる |
+| `hedgeMs` | 300 | primary が返さないとき、secondary にも送るまでの時間 |
+| `timeoutMs` | 2000 | 1 件の問合せ全体の期限 |
+| `cacheMaxEntries` | 10000 | キャッシュの件数の上限 |
+| `upstreams` | google / cloudflare / quad9 | 上流の組。`name`・`primary`・`secondary` を IP アドレスで書く（`192.0.2.1:5300`・`[2001:db8::1]:53` の形でポートも書ける） |
+
+## テスト
+
+```shell
+npm install                      # 型チェック用（typescript・@types/node）
+tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行
+```
+
+上流は偽の DNS サーバをテストの中で立てるので、実ネットには出ない。
+
+## フォルダ構成
+
+```text
+src/        本体
+config/     既定の設定
+tests/      テスト
+tools/      テストのランチャ（40_test）・動作確認の道具（50_run）
+notes/      計画・状態・課題
+```
+
+1. [計画](#1-計画)
+2. [状態](#2-状態)
+3. [課題](#3-課題)
+
+## 1. 計画
+
+- [計画: 並列問合せ DNS リゾルバ（Node.js）](notes/10_plan/p261019-01-並列問合せDNSリゾルバ.md)
+
+## 2. 状態
+
+- [状態](notes/30_status/status.md)
+
+## 3. 課題
+
+- [課題](notes/40_issues/issues.md)
+
+[⌂](../)

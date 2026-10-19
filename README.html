@@ -1,0 +1,112 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>dns-resolver-switch</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(140,78%,25%);--accent2:hsl(140,58%,55%);--soft:hsl(140,28%,95%);}
+.ch03{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+h2{border-left:6px solid var(--accent,#12224d);background:linear-gradient(90deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);padding:6px 12px;margin:30px 0 12px;font-size:1.15em;}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+pre{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-left:5px solid var(--accent2,#2f5fbf);padding:13px 16px;overflow-x:auto;}
+pre code{background:transparent;border:none;color:var(--ink,#1c2330);padding:0;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.nowrap{white-space:nowrap;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>dns-resolver-switch</h1>
+<p class="lead">上流 DNS の複数の組へ同時に問い合わせ、最初に解決できた応答を返す Node.js 製のリゾルバ。</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../" title="上へ">⌂</a>
+
+<h2>何をするか</h2>
+<ul>
+<li>受けた問合せを、上流の組（primary / secondary の IP アドレスの組。既定は 3 組）へ同時に送り、<strong>最初に解決できた応答</strong>を返す</li>
+<li>上流ごとに解決できる範囲が違ってもよい。NXDOMAIN や回答の無い応答は「その上流では解決できなかった」と読み、ほかの組を待つ。<strong>全組が解決できなかったときだけ</strong>、届いた中で最も強い否定（NXDOMAIN ＞ NODATA ＞ SERVFAIL）を返す</li>
+<li>primary が一定時間（既定 300 ms）返さないか解決できなければ、その組の secondary にも送る</li>
+<li>UDP と TCP の両方を同じポートで受ける。上流の応答が切り詰め（TC）なら TCP で取り直す</li>
+<li>解決できた応答は TTL のあいだキャッシュする。否定応答はキャッシュしない</li>
+<li>受け付ける送信元は、サブネット（CIDR）の許可リストで絞る</li>
+</ul>
+
+<h2>使い方</h2>
+<p>Node.js（TypeScript をそのまま実行できる版。動作を確かめたのは v26.11.1）。実行時の依存パッケージは無い。</p>
+<pre><code class="language-shell">node src/main.ts                                  # config/resolver.json で起動
+node src/main.ts --port 53 --host 0.0.0.0         # 待受けだけを変える
+node src/main.ts --config path/to/resolver.json   # 別の設定で起動
+node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）</code></pre>
+
+<h2>設定（config/resolver.json）</h2>
+<div class="tablewrap"><table>
+<thead><tr><th>項目</th><th>既定値</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td class="nowrap"><code>listen</code></td><td class="nowrap">0.0.0.0:10053</td><td>待ち受けるアドレスとポート（UDP・TCP 共通）</td></tr>
+<tr><td class="nowrap"><code>allow</code></td><td>127.0.0.0/8, ::1/128, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16</td><td>受け付ける送信元のサブネット。外れた送信元には UDP は返事をせず、TCP は接続を閉じる</td></tr>
+<tr><td class="nowrap"><code>hedgeMs</code></td><td class="nowrap">300</td><td>primary が返さないとき、secondary にも送るまでの時間</td></tr>
+<tr><td class="nowrap"><code>timeoutMs</code></td><td class="nowrap">2000</td><td>1 件の問合せ全体の期限</td></tr>
+<tr><td class="nowrap"><code>cacheMaxEntries</code></td><td class="nowrap">10000</td><td>キャッシュの件数の上限</td></tr>
+<tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）</td></tr>
+</tbody></table></div>
+
+<h2>テスト</h2>
+<pre><code class="language-shell">npm install                      # 型チェック用（typescript・@types/node）
+tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行</code></pre>
+<p>上流は偽の DNS サーバをテストの中で立てるので、実ネットには出ない。</p>
+
+<h2>フォルダ構成</h2>
+<pre><code class="language-text">src/        本体
+config/     既定の設定
+tests/      テスト
+tools/      テストのランチャ（40_test）・動作確認の道具（50_run）
+notes/      計画・状態・課題</code></pre>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">計画</a></li>
+<li class="ch02"><a href="#ch02">状態</a></li>
+<li class="ch03"><a href="#ch03">課題</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>計画</h1>
+<ul><li><a href="notes/10_plan/p261019-01-並列問合せDNSリゾルバ.html">計画: 並列問合せ DNS リゾルバ（Node.js）</a></li></ul>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>状態</h1>
+<ul><li><a href="notes/30_status/status.html">状態</a></li></ul>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>課題</h1>
+<ul><li><a href="notes/40_issues/issues.html">課題</a></li></ul>
+</section>
+</div>
+<footer><a class="back-home" href="../" title="上へ">⌂</a></footer>
+</body>
+</html>
