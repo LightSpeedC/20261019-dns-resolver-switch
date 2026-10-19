@@ -30,7 +30,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <body>
 <div class="titlebar"><div class="inner">
 <h1>20261019-dns-resolver-switch 課題</h1>
-<p class="lead">これから解決すること。未 2 件 / 着手 0 件 / 済 0 件。</p>
+<p class="lead">これから解決すること。未 1 件 / 着手 0 件 / 済 1 件。</p>
 <p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
 </div></div>
 <div class="wrap">
@@ -39,11 +39,11 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <section class="ch01" id="ch01">
 <h1>動作確認</h1>
 <details class="md-flat" open>
-<summary><span class="no">i261019-01</span> <span class="badge b-none">未</span> Windows の nslookup から問い合わせると応答が無い</summary>
+<summary><span class="no">i261019-01</span> <span class="badge b-ok">済</span> Windows の nslookup から問い合わせると応答が無い</summary>
 <p><code>nslookup -port=10053 example.org. 127.0.0.1</code> が「No response from server」になる。サーバのログに問合せが 1 行も出ないので、問合せがサーバに届いていない。<code>tools/50_run/query.ts</code> からは UDP・TCP とも届き、解決できる。nslookup が送る先（ポート・アドレス）を調べる。</p>
 <ul>
-<li><span class="badge b-none">未</span> nslookup が実際に送っている宛先を確かめる</li>
-<li><span class="badge b-none">未</span> ポート 53 で起動し、OS の DNS 設定から使えるかを確かめる</li>
+<li><span class="badge b-ok">済</span> nslookup が実際に送っている宛先を確かめる → 53 番と 10053 番の両方で待ち受けて確かめたところ、<code>-port=10053</code> を付けても 53 番にだけ届いた。Windows の nslookup は <code>-port</code> を受け付けても送り先を変えない。リゾルバの不具合ではない</li>
+<li><span class="badge b-ok">済</span> ポート 53 で起動し、Windows 標準の nslookup から使えるかを確かめる → 127.0.0.1:53 で起動し、UDP（A・AAAA・存在しない名前）と TCP（<code>-vc</code>）で正しく返った。53 番の待受けに管理者権限は要らなかった。OS の DNS 設定へ登録するのは利用者が行う</li>
 </ul>
 </details>
 <details class="md-flat" open>

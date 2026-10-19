@@ -61,6 +61,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 node src/main.ts --port 53 --host 0.0.0.0         # 待受けだけを変える
 node src/main.ts --config path/to/resolver.json   # 別の設定で起動
 node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）</code></pre>
+<p>Windows の nslookup は <code>-port</code> を付けても 53 番へ送る。nslookup で確かめるときは 53 番で起動する。</p>
 
 <h2>設定（config/resolver.json）</h2>
 <div class="tablewrap"><table>

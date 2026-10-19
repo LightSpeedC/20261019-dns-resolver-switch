@@ -26,6 +26,8 @@ node src/main.ts --config path/to/resolver.json   # 別の設定で起動
 node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）
 ```
 
+Windows の nslookup は `-port` を付けても 53 番へ送る。nslookup で確かめるときは 53 番で起動する。
+
 ## 設定（config/resolver.json）
 
 | 項目 | 既定値 | 意味 |
