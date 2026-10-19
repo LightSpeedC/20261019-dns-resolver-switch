@@ -40,7 +40,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="titlebar"><div class="inner">
 <h1>20261019-dns-resolver-switch 状態</h1>
 <p class="lead">いまどうなっているか。これからやることは課題に置く。</p>
-<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
 <a class="back-home" href="../../README.html" title="README">⌂</a>
@@ -59,13 +59,15 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <tr><td>計画</td><td><span class="badge b-ok">済</span></td><td>2026-10-19 承認</td></tr>
 <tr><td>初期化一式</td><td><span class="badge b-ok">済</span></td><td></td></tr>
 <tr><td>実装</td><td><span class="badge b-ok">済</span></td><td>受け口（UDP・TCP）・並列問合せ・キャッシュ・許可リスト・設定・上流ごとの集計のログ・切り詰めた応答の OPT・UDP に答えない上流の TCP 専用化</td></tr>
+<tr><td>停止と異常の扱い</td><td><span class="badge b-ok">済</span></td><td>停止の合図・例外・起動の失敗（終了コード 0 / 1 / 2）</td></tr>
+<tr><td>Windows サービス化</td><td><span class="badge b-warn">着手</span></td><td>定義と導入スクリプトまで。実環境での登録と OS 再起動後の確認が残る</td></tr>
 <tr><td>実ネットでの動作確認</td><td><span class="badge b-ok">済</span></td><td>127.0.0.1:10053 で起動し、<code>tools/50_run/query.ts</code> から UDP・TCP・存在しない名前を確認。127.0.0.1:53 で起動し、Windows の nslookup から UDP・TCP とも確認（課題 i261019-01）</td></tr>
 </tbody></table></div>
 </section>
 
 <section class="ch02" id="ch02">
 <h1>テスト</h1>
-<p>2026-10-19: tsc ✅ ／ node --test ✅ 55 件 ／ bun test ✅ 55 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
+<p>2026-10-19: tsc ✅ ／ node --test ✅ 65 件 ／ bun test ✅ 65 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
 </section>
 
 <section class="ch03" id="ch03">

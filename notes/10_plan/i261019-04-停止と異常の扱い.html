@@ -40,7 +40,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="titlebar"><div class="inner">
 <h1>計画: 停止と異常の扱い（i261019-04）</h1>
 <p class="lead">止め方を問わず、できるだけ後片付けと停止時の集計を済ませてから終わる。異常は記録して、決まった終了コードで終わる。</p>
-<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
 <a class="back-home" href="../../README.html" title="README">⌂</a>
@@ -88,6 +88,14 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li>停止の受け付けを <code>src/shutdown.ts</code> に分け、<code>process</code> の代わりにテスト用の発信元を渡せる形にする。Windows では子プロセスへ <code>SIGINT</code> を送れない（<code>kill()</code> は強制終了になる、はず。未確認）ため、テストは発信元に合図を出して確かめる</li>
 <li>保証すること: 合図で停止時の集計が出て受け口が閉じる ／ 2 回目の合図で待たずに終わる ／ 停止処理が 5 秒を超えたら強制的に終わる ／ 例外では終了コード 1 ／ ポート競合では終了コード 2 と、ポート番号を含む日本語の記録</li>
 <li>ポート競合は、実際に同じポートを先に取ってから <code>src/main.ts</code> を子プロセスで起動して確かめる</li>
+</ul>
+</section>
+
+<section class="ch03" id="ch03r">
+<h2>実装の結果（2026-10-20）</h2>
+<ul>
+<li>計画どおり実装した（<code>src/shutdown.ts</code>・<code>src/main.ts</code>）。テストは合図ごとの停止・2 回目の合図・期限での強制終了・後片付けの失敗・例外と拒否（8 件）と、起動の失敗（子プロセスで 2 件）</li>
+<li>後片付けは「集計の記録 → TCP の接続 → UDP → TCP の待受け → 上流の確かめ」の順で、1 段が失敗しても次へ進む。停止の途中で届いた応答は送らない</li>
 </ul>
 </section>
 

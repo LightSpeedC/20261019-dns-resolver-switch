@@ -40,7 +40,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="titlebar"><div class="inner">
 <h1>dns-resolver-switch</h1>
 <p class="lead">上流 DNS の複数の組へ同時に問い合わせ、最初に解決できた応答を返す Node.js 製のリゾルバ。</p>
-<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
 <a class="back-home" href="../" title="上へ">⌂</a>
@@ -77,6 +77,25 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）。<code>transport</code> は <code>auto</code>（既定・確かめて決める）／ <code>udp</code> ／ <code>tcp</code>（決め打ち）</td></tr>
 </tbody></table></div>
 
+<h2>Windows サービスとして動かす</h2>
+<p>サービス ID は <code>node-dns-resolver-switch</code>（表示名 <code>␣dns-resolver-switch DNS リゾルバ</code>。先頭は半角空白）。UDP・TCP の 53 番で待ち受け、OS の起動時に自動で起動する。</p>
+<pre><code class="language-shell">tools/70_deploy/install-service.cmd     # 導入・入れ直し（一般ユーザのコンソールから。自動で管理者へ昇格する）
+tools/70_deploy/uninstall-service.cmd   # 停止して削除
+Restart-Service node-dns-resolver-switch  # 設定・ソースを変えたあとの反映（管理者の PowerShell）</code></pre>
+<ul>
+<li>node の実行ファイルを <code>deploy/node-dns-resolver-switch.exe</code> として複製して動かす（プロセス一覧でサービスと見分けるため）。node の版を上げたら入れ直す</li>
+<li>winsw は ai-chat-lite のものを複製する</li>
+<li>ログは <code>logs/node-dns-resolver-switch/</code></li>
+</ul>
+<h2>LAN から使うときのファイアウォールの許可</h2>
+<p>導入スクリプトは許可の規則を足さない。LAN の端末から使うときは、管理者の PowerShell で、この exe の 53 番をローカル サブネットからだけ許可する（<code>&lt;実体のフォルダ&gt;</code> はプロジェクトの実体のパス。subst のドライブではなく C: のパスを書く）。</p>
+<pre><code class="language-powershell">$exe = '&lt;実体のフォルダ&gt;\deploy\node-dns-resolver-switch.exe'
+foreach ($p in 'UDP', 'TCP') {
+	New-NetFirewallRule -DisplayName " dns-resolver-switch DNS ($p)" -Direction Inbound -Program $exe -Protocol $p -LocalPort 53 -RemoteAddress LocalSubnet -Action Allow
+}
+# 消すとき
+Get-NetFirewallRule -DisplayName ' dns-resolver-switch DNS (*)' | Remove-NetFirewallRule</code></pre>
+
 <h2>テスト</h2>
 <pre><code class="language-shell">npm install                      # 型チェック用（typescript・@types/node）
 tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行</code></pre>
@@ -86,7 +105,8 @@ tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行<
 <pre><code class="language-text">src/        本体
 config/     既定の設定
 tests/      テスト
-tools/      テストのランチャ（40_test）・動作確認の道具（50_run）
+deploy/     サービスの定義（winsw）
+tools/      テストのランチャ（40_test）・動作確認の道具（50_run）・サービスの導入（70_deploy）
 notes/      計画・状態・課題</code></pre>
 
 <nav class="toc"><ol>
