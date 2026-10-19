@@ -1,0 +1,104 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 計画: 停止と異常の扱い</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(186.7,78%,25%);--accent2:hsl(186.7,58%,55%);--soft:hsl(186.7,28%,95%);}
+.ch03{--accent:hsl(93.3,78%,25%);--accent2:hsl(93.3,58%,55%);--soft:hsl(93.3,28%,95%);}
+.ch04{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.nowrap{white-space:nowrap;}
+.callout{border-left:6px solid var(--accent,#12224d);background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-radius:0 8px 8px 0;padding:8px 16px;margin:12px 0;}
+.callout strong{color:var(--accent,#12224d);background:transparent;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>計画: 停止と異常の扱い（i261019-04）</h1>
+<p class="lead">止め方を問わず、できるだけ後片付けと停止時の集計を済ませてから終わる。異常は記録して、決まった終了コードで終わる。</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">目的</a></li>
+<li class="ch02"><a href="#ch02">受ける止め方と異常</a></li>
+<li class="ch03"><a href="#ch03">作り方とテスト</a></li>
+<li class="ch04"><a href="#ch04">捕まえられないもの</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>目的</h1>
+<ul>
+<li>いまは <code>SIGINT</code>・<code>SIGTERM</code> しか受けておらず、停止時の集計が出ないことがある。異常（例外・拒否の取りこぼし・起動時のポート競合）の扱いも決めていない</li>
+<li>Windows サービス化（i261019-03）の前提にする。サービスの停止で後片付けが走り、異常終了ではサービスが起動し直せる終了コードで終わる</li>
+</ul>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>受ける止め方と異常</h1>
+<div class="tablewrap"><table>
+<thead><tr><th>きっかけ</th><th>どうする</th><th>終了コード</th></tr></thead>
+<tbody>
+<tr><td class="nowrap"><code>SIGINT</code>（Ctrl+C）</td><td rowspan="4">停止処理（下記）を 1 回だけ走らせる。2 回目が来たら待たずに終わる</td><td class="nowrap" rowspan="4">0</td></tr>
+<tr><td class="nowrap"><code>SIGTERM</code></td></tr>
+<tr><td class="nowrap"><code>SIGBREAK</code>（Ctrl+Break）</td></tr>
+<tr><td class="nowrap"><code>SIGHUP</code>（コンソールの窓を閉じた）</td></tr>
+<tr><td class="nowrap"><code>uncaughtException</code></td><td rowspan="2">ERROR を記録してから停止処理を走らせる</td><td class="nowrap" rowspan="2">1</td></tr>
+<tr><td class="nowrap"><code>unhandledRejection</code></td></tr>
+<tr><td>起動の失敗（<code>EADDRINUSE</code>・<code>EACCES</code>・設定の誤り）</td><td>何が・どのポートでかを日本語で記録して終わる。停止処理は要らない</td><td class="nowrap">2</td></tr>
+</tbody></table></div>
+<p><strong>停止処理</strong>: 停止時の集計をログへ出す → 受け口（UDP・TCP）を閉じる → 進行中の上流への問合せを打ち切る → 終わる。<strong>5 秒で終わらなければ強制的に終わる</strong>（閉じられない接続で止まり続けないため）。</p>
+<p>終了コードを分けるのは、サービスの「異常終了なら起動し直す」設定で、異常（1）と起動の失敗（2）を見分けられるようにするため。起動の失敗はやり直しても直らないので、起動し直しを繰り返させない設定にできる。</p>
+<h2>処理の中の try</h2>
+<ul>
+<li>問合せ 1 件の処理は、すでに例外を捕まえて記録している。加えて <code>udp.send</code> の失敗（送信先が消えた等）をコールバックで受けて WARN にする</li>
+<li>集計のログ出力・後片付けの各段は、1 段が失敗しても次の段へ進む</li>
+</ul>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>作り方とテスト</h1>
+<ul>
+<li>停止の受け付けを <code>src/shutdown.ts</code> に分け、<code>process</code> の代わりにテスト用の発信元を渡せる形にする。Windows では子プロセスへ <code>SIGINT</code> を送れない（<code>kill()</code> は強制終了になる、はず。未確認）ため、テストは発信元に合図を出して確かめる</li>
+<li>保証すること: 合図で停止時の集計が出て受け口が閉じる ／ 2 回目の合図で待たずに終わる ／ 停止処理が 5 秒を超えたら強制的に終わる ／ 例外では終了コード 1 ／ ポート競合では終了コード 2 と、ポート番号を含む日本語の記録</li>
+<li>ポート競合は、実際に同じポートを先に取ってから <code>src/main.ts</code> を子プロセスで起動して確かめる</li>
+</ul>
+</section>
+
+<section class="ch04" id="ch04">
+<h1>捕まえられないもの</h1>
+<div class="callout"><strong>強制終了は捕まえられない。</strong><code>Stop-Process</code>・<code>taskkill /F</code>・タスクマネージャの「タスクの終了」は、プロセスに知らせずに終わらせる。停止時の集計は出ない。集計は間隔ごとにも出しているので、失うのは最後の間隔の分だけ。</div>
+<ul>
+<li>winsw がサービスの停止でどう止めるか（Ctrl+C を送ってから待つのか、すぐ強制終了か）は、i261019-03 で実機で確かめる。強制終了しかできない場合は、停止の依頼をファイルで受ける形（共通ルール「常駐サービスの置き場と、exe の置き替え（Windows）」）を i261019-03 で検討する</li>
+</ul>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>

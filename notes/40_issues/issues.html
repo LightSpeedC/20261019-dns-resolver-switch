@@ -6,7 +6,8 @@
 <style>
 :root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
 .ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
-.ch02{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+.ch02{--accent:hsl(140,78%,25%);--accent2:hsl(140,58%,55%);--soft:hsl(140,28%,95%);}
+.ch03{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
 body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
 a{color:var(--link,#1a4fa0);background:transparent;}
 .titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
@@ -31,7 +32,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <body>
 <div class="titlebar"><div class="inner">
 <h1>20261019-dns-resolver-switch 課題</h1>
-<p class="lead">これから解決すること。未 1 件 / 着手 0 件 / 済 2 件。</p>
+<p class="lead">これから解決すること。未 2 件 / 着手 0 件 / 済 4 件。</p>
 <p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
 </div></div>
 <div class="wrap">
@@ -56,9 +57,37 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 </ul>
 </details>
 </section>
-<div class="ministrip">運用（1 件）</div>
+<div class="ministrip">応答の中身（2 件）</div>
 <section class="ch02" id="ch02">
+<h1>応答の中身</h1>
+<details class="md-flat" open>
+<summary><span class="no">i261019-05</span> <span class="badge b-ok">済</span> 切り詰めた応答から EDNS の OPT が落ちる</summary>
+<p>UDP の上限を超えた応答を TC 付きの質問部だけに作り直すとき、OPT も落ちていた。問合せ元が EDNS 非対応と誤解すると、以後 512 バイトに下がって切り詰めと TCP の取り直しが増える。DO ビットの返事も落ちる。名前が引けなくなることは無い（TCP で取り直すため）。</p>
+<ul>
+<li><span class="badge b-ok">済</span> 上流の応答の OPT を写す。上流の応答に OPT が無く、問合せに OPT があれば、自分の OPT（大きさ 1232）を付ける</li>
+</ul>
+</details>
+<details class="md-flat" open>
+<summary><span class="no">i261019-06</span> <span class="badge b-ok">済</span> UDP に対応していない上流には TCP だけで問い合わせる</summary>
+<p>上流によっては UDP に答えず TCP だけで答える。そのような上流へ UDP を送り続けると、毎回 UDP の待ちが無駄になり、その組は primary が返さない扱いになる。</p>
+<ul>
+<li><span class="badge b-ok">済</span> 起動時、待ち受けを始める前に、上流ごとに UDP と TCP で確かめる問合せ（<code>. NS</code>）を送る。どんな応答（REFUSED 等を含む）でも返れば、その方式は使えるとみなす。UDP が返らず TCP が返る上流は TCP 専用にする。どちらも返らない上流は UDP のまま（落ちているだけかもしれない）とし、WARN を出す</li>
+<li><span class="badge b-ok">済</span> 動いている間も、UDP で応答の無い試行が続いた上流（連続 5 回）は確かめ直し、TCP 専用に切り替える。TCP 専用の上流も、定期的に（既定 10 分）UDP を確かめ直し、答えるようになったら戻す</li>
+<li><span class="badge b-ok">済</span> 設定で組ごとに <code>transport</code> を <code>auto</code>（既定・確かめる）／ <code>udp</code> ／ <code>tcp</code>（決め打ち・確かめない）から選べるようにする</li>
+</ul>
+</details>
+</section>
+<div class="ministrip">運用（2 件）</div>
+<section class="ch03" id="ch03">
 <h1>運用</h1>
+<details class="md-flat" open>
+<summary><span class="no">i261019-04</span> <span class="badge b-none">未</span> 停止と異常の扱い（シグナル・例外・起動の失敗）</summary>
+<p>止め方を問わず、停止時の集計と後片付けを済ませてから終わる。異常は記録し、終了コードを分ける。計画: <a href="../10_plan/i261019-04-停止と異常の扱い.html">停止と異常の扱い</a></p>
+<ul>
+<li><span class="badge b-none">未</span> 計画の承認</li>
+<li><span class="badge b-none">未</span> 実装とテスト</li>
+</ul>
+</details>
 <details class="md-flat" open>
 <summary><span class="no">i261019-03</span> <span class="badge b-none">未</span> Windows サービスにする</summary>
 <p>OS の起動時から常駐させる。ai-chat-lite と 20260905-windows-pc-memory-inspection が使っている winsw で登録する。node の実行ファイルをサービス名の exe として複製し、プロセス一覧でサービスと見分けられるようにする。サービス名は <code>node-</code> で始める（例 <code>node-dns-resolver-switch</code>）。置き場と exe の置き替えは共通ルール「常駐サービスの置き場と、exe の置き替え（Windows）」に従う。</p>

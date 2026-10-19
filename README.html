@@ -51,6 +51,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li>上流ごとに解決できる範囲が違ってもよい。NXDOMAIN や回答の無い応答は「その上流では解決できなかった」と読み、ほかの組を待つ。<strong>全組が解決できなかったときだけ</strong>、届いた中で最も強い否定（NXDOMAIN ＞ NODATA ＞ SERVFAIL）を返す</li>
 <li>primary が一定時間（既定 300 ms）返さないか解決できなければ、その組の secondary にも送る</li>
 <li>UDP と TCP の両方を同じポートで受ける。上流の応答が切り詰め（TC）なら TCP で取り直す</li>
+<li>UDP に答えない上流は、起動時（待ち受けを始める前）に見つけて TCP 専用にする。動いている間も、UDP の応答の無い試行が続けば確かめ直し、TCP 専用にした上流も 10 分ごとに UDP を確かめ直す</li>
 <li>解決できた応答は TTL のあいだキャッシュする。否定応答はキャッシュしない</li>
 <li>受け付ける送信元は、サブネット（CIDR）の許可リストで絞る</li>
 </ul>
@@ -73,7 +74,7 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <tr><td class="nowrap"><code>timeoutMs</code></td><td class="nowrap">2000</td><td>1 件の問合せ全体の期限</td></tr>
 <tr><td class="nowrap"><code>cacheMaxEntries</code></td><td class="nowrap">10000</td><td>キャッシュの件数の上限</td></tr>
 <tr><td class="nowrap"><code>statsIntervalMs</code></td><td class="nowrap">600000</td><td>上流ごとの集計（送信・応答・勝ち・平均応答時間）をログへ出す間隔。0 で止める。停止時にも出す</td></tr>
-<tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）</td></tr>
+<tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）。<code>transport</code> は <code>auto</code>（既定・確かめて決める）／ <code>udp</code> ／ <code>tcp</code>（決め打ち）</td></tr>
 </tbody></table></div>
 
 <h2>テスト</h2>
@@ -96,7 +97,8 @@ notes/      計画・状態・課題</code></pre>
 
 <section class="ch01" id="ch01">
 <h1>計画</h1>
-<ul><li><a href="notes/10_plan/p261019-01-並列問合せDNSリゾルバ.html">計画: 並列問合せ DNS リゾルバ（Node.js）</a></li></ul>
+<ul><li><a href="notes/10_plan/p261019-01-並列問合せDNSリゾルバ.html">計画: 並列問合せ DNS リゾルバ（Node.js）</a></li>
+<li><a href="notes/10_plan/i261019-04-停止と異常の扱い.html">計画: 停止と異常の扱い（i261019-04）</a></li></ul>
 </section>
 
 <section class="ch02" id="ch02">

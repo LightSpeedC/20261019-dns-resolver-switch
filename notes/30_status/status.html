@@ -58,14 +58,14 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <tbody>
 <tr><td>計画</td><td><span class="badge b-ok">済</span></td><td>2026-10-19 承認</td></tr>
 <tr><td>初期化一式</td><td><span class="badge b-ok">済</span></td><td></td></tr>
-<tr><td>実装</td><td><span class="badge b-ok">済</span></td><td>受け口（UDP・TCP）・並列問合せ・キャッシュ・許可リスト・設定・上流ごとの集計のログ</td></tr>
+<tr><td>実装</td><td><span class="badge b-ok">済</span></td><td>受け口（UDP・TCP）・並列問合せ・キャッシュ・許可リスト・設定・上流ごとの集計のログ・切り詰めた応答の OPT・UDP に答えない上流の TCP 専用化</td></tr>
 <tr><td>実ネットでの動作確認</td><td><span class="badge b-ok">済</span></td><td>127.0.0.1:10053 で起動し、<code>tools/50_run/query.ts</code> から UDP・TCP・存在しない名前を確認。127.0.0.1:53 で起動し、Windows の nslookup から UDP・TCP とも確認（課題 i261019-01）</td></tr>
 </tbody></table></div>
 </section>
 
 <section class="ch02" id="ch02">
 <h1>テスト</h1>
-<p>2026-10-19: tsc ✅ ／ node --test ✅ 43 件 ／ bun test ✅ 43 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
+<p>2026-10-19: tsc ✅ ／ node --test ✅ 55 件 ／ bun test ✅ 55 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
 </section>
 
 <section class="ch03" id="ch03">
