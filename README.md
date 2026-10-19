@@ -37,6 +37,7 @@ Windows の nslookup は `-port` を付けても 53 番へ送る。nslookup で�
 | `hedgeMs` | 300 | primary が返さないとき、secondary にも送るまでの時間 |
 | `timeoutMs` | 2000 | 1 件の問合せ全体の期限 |
 | `cacheMaxEntries` | 10000 | キャッシュの件数の上限 |
+| `statsIntervalMs` | 600000 | 上流ごとの集計（送信・応答・勝ち・平均応答時間）をログへ出す間隔。0 で止める。停止時にも出す |
 | `upstreams` | google / cloudflare / quad9 | 上流の組。`name`・`primary`・`secondary` を IP アドレスで書く（`192.0.2.1:5300`・`[2001:db8::1]:53` の形でポートも書ける） |
 
 ## テスト

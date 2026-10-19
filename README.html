@@ -72,6 +72,7 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <tr><td class="nowrap"><code>hedgeMs</code></td><td class="nowrap">300</td><td>primary が返さないとき、secondary にも送るまでの時間</td></tr>
 <tr><td class="nowrap"><code>timeoutMs</code></td><td class="nowrap">2000</td><td>1 件の問合せ全体の期限</td></tr>
 <tr><td class="nowrap"><code>cacheMaxEntries</code></td><td class="nowrap">10000</td><td>キャッシュの件数の上限</td></tr>
+<tr><td class="nowrap"><code>statsIntervalMs</code></td><td class="nowrap">600000</td><td>上流ごとの集計（送信・応答・勝ち・平均応答時間）をログへ出す間隔。0 で止める。停止時にも出す</td></tr>
 <tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）</td></tr>
 </tbody></table></div>
 
