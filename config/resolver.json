@@ -1,0 +1,12 @@
+{
+	"listen": { "host": "0.0.0.0", "port": 10053 },
+	"allow": ["127.0.0.0/8", "::1/128", "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16"],
+	"hedgeMs": 300,
+	"timeoutMs": 2000,
+	"cacheMaxEntries": 10000,
+	"upstreams": [
+		{ "name": "google", "primary": "8.8.8.8", "secondary": "8.8.4.4" },
+		{ "name": "cloudflare", "primary": "1.1.1.1", "secondary": "1.0.0.1" },
+		{ "name": "quad9", "primary": "9.9.9.9", "secondary": "149.112.112.112" }
+	]
+}
