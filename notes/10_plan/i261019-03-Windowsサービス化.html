@@ -1,0 +1,136 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 計画: Windows サービス化</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(210,78%,25%);--accent2:hsl(210,58%,55%);--soft:hsl(210,28%,95%);}
+.ch03{--accent:hsl(140,78%,25%);--accent2:hsl(140,58%,55%);--soft:hsl(140,28%,95%);}
+.ch04{--accent:hsl(70,78%,25%);--accent2:hsl(70,58%,55%);--soft:hsl(70,28%,95%);}
+.ch05{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+h2{border-left:6px solid var(--accent,#12224d);background:linear-gradient(90deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);padding:6px 12px;margin:30px 0 12px;font-size:1.15em;}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+pre{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-left:5px solid var(--accent2,#2f5fbf);padding:13px 16px;overflow-x:auto;}
+pre code{background:transparent;border:none;color:var(--ink,#1c2330);padding:0;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.nowrap{white-space:nowrap;}
+.callout{border-left:6px solid var(--accent,#12224d);background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-radius:0 8px 8px 0;padding:8px 16px;margin:12px 0;}
+.callout strong{color:var(--accent,#12224d);background:transparent;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>計画: Windows サービス化（i261019-03）</h1>
+<p class="lead">winsw で登録し、OS の起動時から 53 番で常駐させる。ai-chat-lite・20260905-windows-pc-memory-inspection の形に倣う。</p>
+<p class="date">📅 作成: 2026-10-20 / 更新: 2026-10-20</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">倣う形</a></li>
+<li class="ch02"><a href="#ch02">置くもの</a></li>
+<li class="ch03"><a href="#ch03">導入・削除・置き替え</a></li>
+<li class="ch04"><a href="#ch04">確かめること</a></li>
+<li class="ch05"><a href="#ch05">決めてほしいこと</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>倣う形</h1>
+<div class="tablewrap"><table>
+<thead><tr><th>項目</th><th>ai-chat-lite</th><th>pc-memory-inspection</th><th>本プロジェクト</th></tr></thead>
+<tbody>
+<tr><td>サービス ID</td><td class="nowrap"><code>node-ai-chat-lite</code></td><td class="nowrap"><code>rust-ai-pc-memory-collector</code></td><td class="nowrap"><code>node-dns-resolver-switch</code></td></tr>
+<tr><td>実行ファイル</td><td>node の複製 <code>node-ai-chat-lite.exe</code></td><td>ビルドした exe</td><td>node の複製 <code>node-dns-resolver-switch.exe</code></td></tr>
+<tr><td>winsw</td><td><code>node-ai-chat-lite-winsw.exe</code></td><td>ai-chat-lite の winsw を複製</td><td>ai-chat-lite の winsw を複製（<code>node-dns-resolver-switch-winsw.exe</code>）</td></tr>
+<tr><td>導入</td><td>cmd（C: から・管理者で）</td><td>ps1 ＋ cmd（自動で昇格・subst を実体へ直す・入れ直しに対応）</td><td>ps1 ＋ cmd（pc-memory-inspection の形）</td></tr>
+<tr><td>停止</td><td colspan="2"><code>stopparentprocessfirst</code>（Ctrl+C 相当を送る）</td><td>同じ。i261019-04 の停止処理で受ける</td></tr>
+<tr><td>異常終了</td><td colspan="2"><code>onfailure restart 10 sec</code> × 3、<code>resetfailure 1 min</code></td><td>同じ</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>置くもの</h1>
+<pre><code class="language-text">deploy/
+  node-dns-resolver-switch-winsw.xml   定義（Git に入れる）
+  node-dns-resolver-switch-winsw.exe   winsw の複製（Git に入れない）
+  node-dns-resolver-switch.exe         node の複製（Git に入れない）
+tools/70_deploy/
+  install-service.ps1 / .cmd           導入・入れ直し・削除（-Uninstall）
+logs/node-dns-resolver-switch/         サービスのログ（除外済み）</code></pre>
+<ul>
+<li>定義の要点: <code>&lt;executable&gt;node-dns-resolver-switch.exe&lt;/executable&gt;</code>、<code>&lt;arguments&gt;"%BASE%\..\src\main.ts" --port 53&lt;/arguments&gt;</code>、<code>&lt;logpath&gt;%BASE%\..\logs\node-dns-resolver-switch&lt;/logpath&gt;</code>、<code>&lt;startmode&gt;Automatic&lt;/startmode&gt;</code></li>
+<li>設定は <code>config/resolver.json</code>（待受け 0.0.0.0、許可リスト）。ポートだけ引数で 53 にする</li>
+<li><code>.gitignore</code> に <code>deploy/*.exe</code> を足す</li>
+</ul>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>導入・削除・置き替え</h1>
+<ol>
+<li>一般ユーザのコンソールから <code>install-service.cmd</code> を実行 → 自動で管理者へ昇格。自分のパスと winsw の複製元は、昇格の前に subst から実体のパスへ直して渡す</li>
+<li>導入済みなら止めて削除する（入れ直し）</li>
+<li>node の複製: 使っている <code>node</code> の実体を <code>deploy/node-dns-resolver-switch.exe</code> へ写す。動いている exe は上書きできないので、止めてから写す</li>
+<li>winsw の複製（無ければ）、定義の存在を確かめる → <code>install</code> → <code>start</code></li>
+<li>5 秒待って状態・開始の種類・登録された実行ファイルのパスを表示する（subst のドライブになっていないことを目で確かめる）</li>
+</ol>
+<p>ソースの更新は、サービスの再起動で反映される（node はソースを起動時に読む）。node の版を上げるときだけ、入れ直しで exe を写し直す。</p>
+</section>
+
+<section class="ch04" id="ch04">
+<h1>確かめること</h1>
+<ul>
+<li>導入後、<code>nslookup example.com 127.0.0.1</code> と LAN の別の端末から引ける</li>
+<li>サービスの停止で、ログに停止時の集計が出る（winsw の Ctrl+C が i261019-04 の停止処理に届く）</li>
+<li>プロセスを強制終了すると 10 秒後に起動し直す</li>
+<li><strong>OS を再起動したあと、自動で起動している</strong>（共通ルール「自動実行に関わる変更は、実環境から動かして結果を見るまで済にしない」）。再起動は利用者が行う</li>
+</ul>
+<div class="callout"><strong>winsw の再起動は終了コードを区別しない。</strong>0 以外ならすべて起動し直すので、i261019-04 で分けた「起動の失敗（2）」でも 10 秒ごとに起動し直し続ける。53 番を別のサービスが使っていると、ログに起動の失敗が 10 秒ごとに積もる。</div>
+</section>
+
+<section class="ch05" id="ch05">
+<h1>決めてほしいこと</h1>
+<ol start="5">
+<li>実行するアカウント
+<ul>
+<li><strong>5-A</strong>: <code>LocalService</code>（権限の小さい組み込みアカウント）。推す理由: DNS を外に開くので、乗っ取られたときの被害を小さくする。プロジェクトのフォルダを読めるかは導入時に確かめる</li>
+<li><strong>5-B</strong>: winsw の既定（<code>LocalSystem</code>）。ai-chat-lite と同じで確実に動くが、権限が最も大きい</li>
+</ul></li>
+<li>LAN から届くようにする Windows ファイアウォールの許可
+<ul>
+<li><strong>6-A</strong>: 導入スクリプトが、この exe の 53 番（UDP・TCP）を「ローカル サブネット」からだけ許可する規則を足し、削除で消す。推す理由: 入れ忘れが無く、許す範囲も本体の許可リストと二重に絞れる</li>
+<li><strong>6-B</strong>: 規則は足さず、手順だけ README に書く</li>
+</ul></li>
+<li>管理者なしでの再起動（設定を変えたあとの反映）
+<ul>
+<li><strong>7-A</strong>: いまは作らない。再起動は管理者で <code>Restart-Service</code>。推す理由: 設定の変更は頻繁でない</li>
+<li><strong>7-B</strong>: 受信箱のフォルダに依頼のファイルを置くと、自分で異常終了して起動し直す仕組みを足す（共通ルール「常駐サービスの置き場と、exe の置き替え」）</li>
+</ul></li>
+</ol>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>
