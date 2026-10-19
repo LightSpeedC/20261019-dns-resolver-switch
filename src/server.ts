@@ -5,7 +5,7 @@ import type { AddressInfo } from 'node:net';
 import { DnsCache } from './cache.ts';
 import { buildAllowList } from './cidr.ts';
 import type { Config } from './config.ts';
-import { isResponse, parseQuestion, truncateForUdp, typeName, udpLimit } from './dns-message.ts';
+import { hasEdns, isResponse, parseQuestion, truncateForUdp, typeName, udpLimit } from './dns-message.ts';
 import { consoleLogger, type Logger } from './log.ts';
 import { resolveRace, type Attempt } from './race.ts';
 import { UpstreamStats } from './stats.ts';
@@ -81,7 +81,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	udp.on('message', (msg, rinfo) => {
 		if (!allow(rinfo.address)) return;
 		handle(msg, 'udp', rinfo.address).then((res) => {
-			if (res) udp.send(truncateForUdp(res, udpLimit(msg)), rinfo.port, rinfo.address);
+			if (res) udp.send(truncateForUdp(res, udpLimit(msg), hasEdns(msg)), rinfo.port, rinfo.address);
 		}, (err) => log('ERROR', `udp ${rinfo.address} ${String(err)}`));
 	});
 	udp.on('error', (err) => log('ERROR', `udp ${String(err)}`));

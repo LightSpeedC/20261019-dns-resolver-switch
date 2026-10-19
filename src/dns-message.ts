@@ -22,7 +22,12 @@ export interface Question {
 interface RecordInfo {
 	type: number;
 	ttlOffset: number;
+	start: number;
+	end: number;
 }
+
+/** 本リゾルバが UDP で受けられると伝える大きさ（DNS Flag Day 2020 の推奨値） */
+export const OWN_EDNS_SIZE = 1232;
 
 const HEADER_LEN = 12;
 
@@ -91,7 +96,7 @@ function records(buf: Buffer): { an: RecordInfo[]; rest: RecordInfo[] } {
 			need(buf, end, 10);
 			const rdlen = buf.readUInt16BE(end + 8);
 			need(buf, end + 10, rdlen);
-			out[section].push({ type: buf.readUInt16BE(end), ttlOffset: end + 4 });
+			out[section].push({ type: buf.readUInt16BE(end), ttlOffset: end + 4, start: pos, end: end + 10 + rdlen });
 			pos = end + 10 + rdlen;
 		}
 	});
@@ -214,12 +219,38 @@ export function udpLimit(query: Buffer): number {
 	return 512;
 }
 
-/** 上限を超える応答は TC を立てて質問部だけにする。問合せ元は TCP で取り直す */
-export function truncateForUdp(resp: Buffer, limit: number): Buffer {
+/**
+ * 上限を超える応答は TC を立てて質問部だけにする。問合せ元は TCP で取り直す
+ * 問合せに OPT があれば応答にも OPT を残す（RFC 6891。落とすと EDNS 非対応と誤解され、以後 512 バイトに下がる）
+ */
+export function truncateForUdp(resp: Buffer, limit: number, queryHasEdns = false): Buffer {
 	if (resp.length <= limit) return resp;
 	const truncated = emptyResponse(resp, rcodeOf(resp), true);
 	truncated[2] |= resp[2] & 0x04;
-	return truncated;
+	if (!queryHasEdns) return truncated;
+	let opt: Buffer | null = null;
+	try {
+		const r = records(resp).rest.find((x) => x.type === TYPE.OPT);
+		if (r) opt = resp.subarray(r.start, r.end);
+	} catch {
+		// 読めない応答なら自分の OPT を付ける
+	}
+	if (!opt) {
+		opt = Buffer.alloc(11);
+		opt.writeUInt16BE(TYPE.OPT, 1);
+		opt.writeUInt16BE(OWN_EDNS_SIZE, 3);
+	}
+	truncated.writeUInt16BE(1, 10);
+	return Buffer.concat([truncated, opt]);
+}
+
+/** 問合せに EDNS の OPT が付いているか */
+export function hasEdns(query: Buffer): boolean {
+	try {
+		return records(query).rest.some((r) => r.type === TYPE.OPT);
+	} catch {
+		return false;
+	}
 }
 
 const TYPE_NAMES = new Map<number, string>(Object.entries(TYPE).map(([k, v]) => [v, k]));

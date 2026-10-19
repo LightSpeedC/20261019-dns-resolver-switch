@@ -62,6 +62,48 @@ test('EDNS が無い問合せの UDP 上限は 512、上限を超える応答は
 	assert.ok(t.length <= 512);
 });
 
+/** 応答の追加部に OPT を 1 件足す（class 欄が UDP の大きさ、TTL 欄の 0x8000 が DO ビット） */
+function withOpt(resp: Buffer, size: number): Buffer {
+	const rr = Buffer.alloc(11);
+	rr.writeUInt16BE(TYPE.OPT, 1);
+	rr.writeUInt16BE(size, 3);
+	rr.writeUInt16BE(0x8000, 7);
+	const out = Buffer.concat([resp, rr]);
+	out.writeUInt16BE(out.readUInt16BE(10) + 1, 10);
+	return out;
+}
+
+function optOf(resp: Buffer): { size: number; flags: number } | null {
+	const q = parseQuestion(resp);
+	if (resp.readUInt16BE(6) !== 0 || resp.readUInt16BE(8) !== 0 || resp.readUInt16BE(10) !== 1) return null;
+	const p = q.end;
+	if (resp[p] !== 0 || resp.readUInt16BE(p + 1) !== TYPE.OPT) return null;
+	return { size: resp.readUInt16BE(p + 3), flags: resp.readUInt16BE(p + 7) };
+}
+
+test('切り詰めた応答にも上流の応答の OPT を写す（EDNS 非対応と誤解されないように）', () => {
+	const q = buildQuery('a.example', TYPE.A, 1, { ednsSize: 1232 });
+	const big = withOpt(Buffer.concat([buildAnswer(q, { behavior: 'resolve' }, true)]), 4096);
+	// 回答部を水増しせずに上限を小さくして切り詰めさせる
+	const t = truncateForUdp(big, 40, true);
+	assert.equal(t[2] & 0x02, 0x02);
+	assert.deepEqual(optOf(t), { size: 4096, flags: 0x8000 });
+});
+
+test('上流の応答に OPT が無くても、問合せに OPT があれば自分の OPT を付けて切り詰める', () => {
+	const q = buildQuery('a.example', TYPE.A, 1, { ednsSize: 1232 });
+	const big = Buffer.concat([buildAnswer(q, { behavior: 'resolve' }, true), Buffer.alloc(1300)]);
+	const t = truncateForUdp(big, 1232, true);
+	assert.equal(optOf(t)?.size, 1232);
+});
+
+test('問合せに OPT が無ければ、切り詰めた応答にも OPT を付けない', () => {
+	const q = buildQuery('a.example', TYPE.A, 1);
+	const big = Buffer.concat([buildAnswer(q, { behavior: 'resolve' }, true), Buffer.alloc(600)]);
+	const t = truncateForUdp(big, 512, false);
+	assert.equal(t.readUInt16BE(10), 0);
+});
+
 test('EDNS の OPT があればその大きさを UDP 上限にする', () => {
 	const q = buildQuery('a.example', TYPE.A, 1, { ednsSize: 1232 });
 	assert.equal(udpLimit(q), 1232);
