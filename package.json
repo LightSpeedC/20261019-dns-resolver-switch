@@ -1,0 +1,15 @@
+{
+	"name": "dns-resolver-switch",
+	"version": "0.1.0",
+	"private": true,
+	"description": "上流 DNS の複数組へ同時に問い合わせ、最初に解決できた応答を返すリゾルバ",
+	"type": "module",
+	"scripts": {
+		"start": "node src/main.ts",
+		"typecheck": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@types/node": "^24.0.0",
+		"typescript": "^5.9.0"
+	}
+}
