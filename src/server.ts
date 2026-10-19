@@ -57,6 +57,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 		return r.response;
 	};
 
+	let closed = false;
 	const tcp = net.createServer();
 	const sockets = new Set<net.Socket>();
 	tcp.on('connection', (sock) => {
@@ -81,7 +82,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 					const len = Buffer.alloc(2);
 					len.writeUInt16BE(res.length);
 					sock.write(Buffer.concat([len, res]));
-				}, (err) => log('ERROR', `tcp ${from} ${String(err)}`));
+				}).catch((err) => log('ERROR', `tcp ${from} ${String(err)}`));
 			}
 		});
 	});
@@ -90,8 +91,12 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	udp.on('message', (msg, rinfo) => {
 		if (!allow(rinfo.address)) return;
 		handle(msg, 'udp', rinfo.address).then((res) => {
-			if (res) udp.send(truncateForUdp(res, udpLimit(msg), hasEdns(msg)), rinfo.port, rinfo.address);
-		}, (err) => log('ERROR', `udp ${rinfo.address} ${String(err)}`));
+			if (!res || closed) return;
+			// 送信先が消えた・停止の途中で閉じた、などの失敗は WARN にとどめる
+			udp.send(truncateForUdp(res, udpLimit(msg), hasEdns(msg)), rinfo.port, rinfo.address, (err) => {
+				if (err) log('WARN', `udp ${rinfo.address} 応答を送れませんでした: ${String(err)}`);
+			});
+		}).catch((err) => log('ERROR', `udp ${rinfo.address} ${String(err)}`));
 	});
 	udp.on('error', (err) => log('ERROR', `udp ${String(err)}`));
 
@@ -108,13 +113,25 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 
 	return {
 		port,
+		// 後片付けの各段は、1 段が失敗しても次の段へ進む
 		close: async () => {
+			if (closed) return;
+			closed = true;
 			if (statsTimer) clearInterval(statsTimer);
-			await modes.stop();
-			log('INFO', stats.summary());
-			for (const s of sockets) s.destroy();
-			await new Promise<void>((r) => udp.close(() => r()));
-			await new Promise<void>((r) => tcp.close(() => r()));
+			const steps: Array<[string, () => Promise<void> | void]> = [
+				['集計の記録', () => log('INFO', stats.summary())],
+				['TCP の接続を閉じる', () => { for (const s of sockets) s.destroy(); }],
+				['UDP を閉じる', () => new Promise<void>((r) => udp.close(() => r()))],
+				['TCP を閉じる', () => new Promise<void>((r) => tcp.close(() => r()))],
+				['上流の確かめを止める', () => modes.stop()],
+			];
+			for (const [name, step] of steps) {
+				try {
+					await step();
+				} catch (err) {
+					log('WARN', `停止処理（${name}）に失敗しました: ${String(err)}`);
+				}
+			}
 		},
 	};
 }

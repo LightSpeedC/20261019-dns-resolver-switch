@@ -11,13 +11,14 @@ Write-Host '== 型チェック（tsc） =='
 $tscCode = $LASTEXITCODE
 
 Write-Host '== node --test =='
-& node --test @files | Out-Host
+# 止まったテストに気づけるよう、1 件ごとに期限を付ける（i261019-07）
+& node --test --test-timeout=30000 @files | Out-Host
 $nodeCode = $LASTEXITCODE
 
 $bunCode = 0
 if (Get-Command bun -ErrorAction SilentlyContinue) {
 	Write-Host '== bun test =='
-	& bun test @files | Out-Host
+	& bun test --timeout 30000 @files | Out-Host
 	$bunCode = $LASTEXITCODE
 }
 
