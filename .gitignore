@@ -1,0 +1,12 @@
+tmp/
+etc/
+logs/
+_*
+node_modules/
+dist/
+
+.claude/*
+!.claude/settings.json
+!.claude/commands/
+!.claude/agents/
+!.claude/skills/
