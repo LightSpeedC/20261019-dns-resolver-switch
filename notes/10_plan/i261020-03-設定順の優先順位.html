@@ -1,0 +1,100 @@
+﻿<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>20261019-dns-resolver-switch 計画: 設定順の優先順位</title>
+<style>
+:root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
+.ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
+.ch02{--accent:hsl(186.7,78%,25%);--accent2:hsl(186.7,58%,55%);--soft:hsl(186.7,28%,95%);}
+.ch03{--accent:hsl(93.3,78%,25%);--accent2:hsl(93.3,58%,55%);--soft:hsl(93.3,28%,95%);}
+.ch04{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
+a{color:var(--link,#1a4fa0);background:transparent;}
+.titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
+.titlebar .inner{max-width:1600px;margin:0 auto;}
+.titlebar h1{font-size:1.7em;margin:0 0 6px;color:#fff;}
+.titlebar .lead,.titlebar .date{color:#e6ecf8;background:transparent;font-size:.9em;margin:2px 0;}
+.wrap{max-width:1600px;margin:0 auto;padding:0 30px;}
+.wrap > .back-home{margin-top:18px;}
+.back-home{display:inline-block;padding:2px 12px;border-radius:6px;background:linear-gradient(100deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol{display:flex;flex-wrap:wrap;gap:8px;list-style:none;padding:0;counter-reset:tocnum;}
+.toc ol li{counter-increment:tocnum;}
+.toc ol a{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;width:310px;max-width:100%;padding:6px 12px;border-radius:6px;background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;text-decoration:none;font-weight:700;}
+.toc ol a::before{content:counter(tocnum) ". ";}
+section{background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);padding:4px 26px 26px;margin:34px 0;border-radius:8px;}
+section h1{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:14px 20px;margin:26px 0 20px;border-radius:8px;font-size:1.4em;box-shadow:0 3px 8px rgba(0,0,0,.18);}
+code{background:var(--code-bg,#f4f6fa);border:1px solid var(--line,#d9dfe8);color:#17335f;padding:0 4px;border-radius:4px;}
+.tablewrap{overflow-x:auto;}
+table{border-collapse:collapse;border-radius:8px;overflow:hidden;box-shadow:0 2px 6px rgba(0,0,0,.08);margin:10px 0;}
+th{background:linear-gradient(100deg,var(--accent,#12224d),var(--accent2,#2f5fbf));color:#fff;padding:9px 12px;text-align:left;}
+td{background:#fff;color:var(--ink,#1c2330);padding:9px 12px;border-top:1px solid var(--line,#d9dfe8);vertical-align:top;}
+tr:nth-child(even) td{background:#fafbfe;}
+.callout{border-left:6px solid var(--accent,#12224d);background:linear-gradient(180deg,var(--soft,#f2f5fb),#fff);color:var(--ink,#1c2330);border-radius:0 8px 8px 0;padding:8px 16px;margin:12px 0;}
+.callout strong{color:var(--accent,#12224d);background:transparent;}
+footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
+</style>
+</head>
+<body>
+<div class="titlebar"><div class="inner">
+<h1>計画: 設定順の優先順位（i261020-03）</h1>
+<p class="lead">上流の組の並び順を優先順位にする。後ろの組が先に解決しても、前の組を最大 300 ms 待ち、前の組が解決すればそちらを返す。</p>
+<p class="date">📅 作成: 2026-10-20 / 更新: 2026-10-20</p>
+</div></div>
+<div class="wrap">
+<a class="back-home" href="../../README.html" title="README">⌂</a>
+
+<nav class="toc"><ol>
+<li class="ch01"><a href="#ch01">規則</a></li>
+<li class="ch02"><a href="#ch02">例</a></li>
+<li class="ch03"><a href="#ch03">作り方とテスト</a></li>
+<li class="ch04"><a href="#ch04">影響</a></li>
+</ol></nav>
+
+<section class="ch01" id="ch01">
+<h1>規則</h1>
+<ul>
+<li>組の優先順位は、設定の <code>upstreams</code> に書いた順（先頭が最も高い）</li>
+<li>ある組が解決したら、それより前の組がすべて<strong>決着</strong>していれば、すぐ返す。決着とは「その組が解決できないと決まった」こと（primary・secondary とも解決できない返事・失敗で終わった）</li>
+<li>前に決着していない組があれば、その応答を<strong>候補</strong>として持ち、待つ。待つ間に、より前の組が解決したら、そちらが新しい候補になる（同じ規則で、さらに前の組を待つ）</li>
+<li>前の組がすべて決着した時点で、候補を返す</li>
+<li>最初の候補を持ってから <code>priorityWaitMs</code>（既定 300 ms・決定 12-B）たったら、その時点の候補を返す。前の組が落ちていても、遅れは 300 ms まで</li>
+<li>どの組も解決できなければ、いまと同じ（届いた中で最も強い否定、無ければ SERVFAIL）</li>
+<li><code>priorityWaitMs</code> を 0 にすると、いまと同じ「最初に解決した応答を返す」に戻る</li>
+</ul>
+</section>
+
+<section class="ch02" id="ch02">
+<h1>例</h1>
+<div class="tablewrap"><table>
+<thead><tr><th>届いた順</th><th>返すもの</th><th>返す時点</th></tr></thead>
+<tbody>
+<tr><td>組 2 解決（20 ms）→ 組 1 解決（60 ms）</td><td>組 1</td><td>60 ms</td></tr>
+<tr><td>組 1 NXDOMAIN（primary・secondary とも）→ 組 2 解決</td><td>組 2</td><td>組 2 の解決と同時</td></tr>
+<tr><td>組 3 解決（10 ms）→ 組 2 解決（30 ms）→ 組 1 決着（NXDOMAIN、50 ms）</td><td>組 2</td><td>50 ms</td></tr>
+<tr><td>組 2 解決（20 ms）。組 1 は無応答</td><td>組 2</td><td>320 ms（候補から 300 ms）</td></tr>
+<tr><td>組 1 解決（10 ms）</td><td>組 1</td><td>10 ms（前の組が無いので待たない）</td></tr>
+</tbody></table></div>
+</section>
+
+<section class="ch03" id="ch03">
+<h1>作り方とテスト</h1>
+<ul>
+<li><code>src/race.ts</code> の決着の判定に、候補と優先の待ちを足す。組ごとに「決着したか」を持つ</li>
+<li>設定に <code>priorityWaitMs</code>（既定 300、0 以上、<code>timeoutMs</code> 未満）を足す</li>
+<li>テスト（偽の上流で遅れを作る）: 上の表の 5 行 ／ <code>priorityWaitMs: 0</code> なら最初に解決した応答を返す ／ 集計の「勝ち」は返した組に付く</li>
+</ul>
+</section>
+
+<section class="ch04" id="ch04">
+<h1>影響</h1>
+<ul>
+<li>先頭の組が遅い・落ちているときは、応答が最大 300 ms 遅れる。キャッシュから返す分は遅れない</li>
+<li>ログの「応答した上流」と所要時間は、返した組と、返した時点までの時間になる</li>
+</ul>
+<div class="callout"><strong>並び順が意味を持つようになる。</strong>いまの既定の設定（google・cloudflare・quad9）では、google の応答が優先される。社内 DNS などを優先したいときは、その組を先頭に書く。</div>
+</section>
+</div>
+<footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
+</body>
+</html>
