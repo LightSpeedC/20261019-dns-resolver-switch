@@ -18,7 +18,8 @@
 	複製元の winsw の実行ファイル。
 
 .PARAMETER NodeSource
-	複製元の node の実行ファイル。既定は PATH の node。
+	複製元の node の実行ファイル。指定したときは必ず写し直す（node の版を上げるとき）。
+	省略したときは、deploy/ に複製があればそれを使い（配布物で持ち込んだ PC）、無ければ PATH の node を写す。
 #>
 [CmdletBinding()]
 param(
@@ -60,11 +61,6 @@ function Resolve-SubstPath([string]$Path) {
 		}
 	}
 	return $Path
-}
-
-if (-not $NodeSource) {
-	$nodeCommand = Get-Command node -ErrorAction SilentlyContinue
-	if ($nodeCommand) { $NodeSource = $nodeCommand.Source }
 }
 
 # 管理者へ昇格する。自分のパスと、引数の既定値も含めて、渡すパスはすべて実体へ直してから渡す
@@ -128,13 +124,24 @@ try {
 		Copy-Item -LiteralPath $WinswSource -Destination $winsw
 		Write-Host 'winsw を複製しました。'
 	}
-	# node は入れ直しのたびに写し直す（node の版を上げたときに反映するため）。サービスは上で止めてある
-	if (-not $NodeSource -or -not (Test-Path -LiteralPath $NodeSource)) {
-		Write-Host ('node の実行ファイルが見つかりません: ' + $NodeSource) -ForegroundColor Red
+	# node: 指定されたら写し直す。省略なら deploy/ の複製を使い、無ければ PATH の node を写す。サービスは上で止めてある
+	if (-not $NodeSource -and -not (Test-Path -LiteralPath $nodeCopy)) {
+		$nodeCommand = Get-Command node -ErrorAction SilentlyContinue
+		if ($nodeCommand) { $NodeSource = $nodeCommand.Source }
+	}
+	if ($NodeSource) {
+		if (-not (Test-Path -LiteralPath $NodeSource)) {
+			Write-Host ('node の実行ファイルが見つかりません: ' + $NodeSource) -ForegroundColor Red
+			Complete-Script 1
+		}
+		Copy-Item -LiteralPath $NodeSource -Destination $nodeCopy -Force
+		Write-Host ('node を複製しました（' + (& $nodeCopy --version) + '）。')
+	} elseif (Test-Path -LiteralPath $nodeCopy) {
+		Write-Host ('deploy/ の node を使います（' + (& $nodeCopy --version) + '）。')
+	} else {
+		Write-Host 'node が見つかりません。node を入れるか、-NodeSource で node.exe を指定してください。' -ForegroundColor Red
 		Complete-Script 1
 	}
-	Copy-Item -LiteralPath $NodeSource -Destination $nodeCopy -Force
-	Write-Host ('node を複製しました（' + (& $nodeCopy --version) + '）。')
 
 	Write-Host 'サービスを導入します...'
 	if ((Invoke-Winsw 'install') -ne 0) {
