@@ -126,6 +126,17 @@ export function parseConfig(input: unknown): Config {
 	return config;
 }
 
+/**
+ * 実際に読む設定（config/_resolver.json。先頭 _ で Git に入らない）が無ければ、テンプレートから写す。写したら true
+ * 実ファイルには社内 DNS のアドレスや LAN のサブネットを書くことがあるため、コミットするのはテンプレートだけにする
+ */
+export function ensureConfigFile(actualPath: string, templatePath: string): boolean {
+	if (fs.existsSync(actualPath)) return false;
+	if (!fs.existsSync(templatePath)) throw new Error(`設定のテンプレートが見つかりません: ${templatePath}`);
+	fs.copyFileSync(templatePath, actualPath, fs.constants.COPYFILE_EXCL);
+	return true;
+}
+
 export function loadConfig(path: string): Config {
 	return parseConfig(JSON.parse(fs.readFileSync(path, 'utf8')));
 }

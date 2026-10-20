@@ -11,7 +11,7 @@
     install は実体のフォルダ（C:\...）で行う。subst のドライブはサービスから見えず、登録すると起動に失敗する。
 
     node の複製をサービス名の exe にするのは、プロセス一覧でサービスと見分けられるようにするため。
-    設定は config/resolver.json（待受け 0.0.0.0・許可リスト）。ポートだけ引数で 53 にする。
+    設定は config/_resolver.json（Git に入らない。無ければ config/resolver.example.json から写す）。ポートだけ引数で 53 にする。
   -->
   <executable>node-dns-resolver-switch.exe</executable>
   <arguments>"%BASE%\..\src\main.ts" --port 53</arguments>

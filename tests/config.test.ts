@@ -1,6 +1,35 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseConfig, parseAddress, DEFAULT_CONFIG } from '../src/config.ts';
+import fs from 'node:fs';
+import path from 'node:path';
+import { after } from 'node:test';
+import { parseConfig, parseAddress, DEFAULT_CONFIG, ensureConfigFile, loadConfig } from '../src/config.ts';
+
+const tmpRoot = path.join(import.meta.dirname, '..', 'tmp');
+fs.mkdirSync(tmpRoot, { recursive: true });
+const workDir = fs.mkdtempSync(path.join(tmpRoot, 'config-test-'));
+after(() => fs.rmSync(workDir, { recursive: true, force: true }));
+
+test('実ファイルが無ければテンプレートから写し、写したことを返す（2 回目は写さない）', () => {
+	const template = path.join(workDir, 'resolver.example.json');
+	const actual = path.join(workDir, '_resolver.json');
+	fs.writeFileSync(template, JSON.stringify({ hedgeMs: 123 }));
+	assert.equal(ensureConfigFile(actual, template), true);
+	assert.equal(loadConfig(actual).hedgeMs, 123);
+	// 実ファイルを書き換えたら、それが残る（テンプレートで上書きしない）
+	fs.writeFileSync(actual, JSON.stringify({ hedgeMs: 456 }));
+	assert.equal(ensureConfigFile(actual, template), false);
+	assert.equal(loadConfig(actual).hedgeMs, 456);
+});
+
+test('テンプレートも無ければ例外にする', () => {
+	assert.throws(() => ensureConfigFile(path.join(workDir, 'none.json'), path.join(workDir, 'none.example.json')), /テンプレート/);
+});
+
+test('リポジトリのテンプレートは読める設定になっている', () => {
+	const c = loadConfig(path.join(import.meta.dirname, '..', 'config', 'resolver.example.json'));
+	assert.equal(c.upstreams.length, 3);
+});
 
 test('上流のアドレスはポートを省くと 53 になる（IPv4・IPv6 とも）', () => {
 	assert.deepEqual(parseAddress('192.0.2.1'), { host: '192.0.2.1', port: 53 });

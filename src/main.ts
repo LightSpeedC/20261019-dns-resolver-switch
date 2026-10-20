@@ -1,9 +1,8 @@
 // 起動口。node src/main.ts [--config <path>] [--host <IP>] [--port <番号>]
 // 終了コード: 0 = 停止の合図で終わった ／ 1 = 動いている間の異常 ／ 2 = 起動の失敗（設定の誤り・ポートが使えない）
-import fs from 'node:fs';
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { DEFAULT_CONFIG, loadConfig, parseConfig, type Config } from './config.ts';
+import { ensureConfigFile, loadConfig, parseConfig, type Config } from './config.ts';
 import { consoleLogger } from './log.ts';
 import { startServer, type RunningServer } from './server.ts';
 import { installShutdown } from './shutdown.ts';
@@ -18,9 +17,16 @@ function loadFromArgs(): Config {
 			port: { type: 'string' },
 		},
 	});
-	const defaultPath = path.join(import.meta.dirname, '..', 'config', 'resolver.json');
-	const configPath = values.config ?? (fs.existsSync(defaultPath) ? defaultPath : null);
-	const base = configPath ? loadConfig(configPath) : DEFAULT_CONFIG;
+	let configPath = values.config;
+	if (!configPath) {
+		// 既定は config/_resolver.json（Git に入らない）。無ければテンプレートから写す
+		const configDir = path.join(import.meta.dirname, '..', 'config');
+		configPath = path.join(configDir, '_resolver.json');
+		if (ensureConfigFile(configPath, path.join(configDir, 'resolver.example.json'))) {
+			log('INFO', '設定 config/_resolver.json が無いため、config/resolver.example.json から写しました');
+		}
+	}
+	const base = loadConfig(configPath);
 	return parseConfig({
 		...base,
 		listen: { host: values.host ?? base.listen.host, port: values.port !== undefined ? Number(values.port) : base.listen.port },
