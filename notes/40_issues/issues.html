@@ -41,7 +41,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="ministrip">動作確認（2 件）</div>
 <section class="ch01" id="ch01">
 <h1>動作確認</h1>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261019-01</span> <span class="badge b-ok">済</span> Windows の nslookup から問い合わせると応答が無い</summary>
 <p><code>nslookup -port=10053 example.org. 127.0.0.1</code> が「No response from server」になる。サーバのログに問合せが 1 行も出ないので、問合せがサーバに届いていない。<code>tools/50_run/query.ts</code> からは UDP・TCP とも届き、解決できる。nslookup が送る先（ポート・アドレス）を調べる。</p>
 <ul>
@@ -49,7 +49,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-ok">済</span> ポート 53 で起動し、Windows 標準の nslookup から使えるかを確かめる → 127.0.0.1:53 で起動し、UDP（A・AAAA・存在しない名前）と TCP（<code>-vc</code>）で正しく返った。53 番の待受けに管理者権限は要らなかった。OS の DNS 設定へ登録するのは利用者が行う</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261019-02</span> <span class="badge b-ok">済</span> 上流ごとの勝率・平均応答時間を記録して見られるようにする</summary>
 <p>計画の第 2 段階。記録の置き場（ログだけ・ファイル・問合せで見る口）と、見せ方を決める。</p>
 <p>決定（2026-10-19）: 4-A。起動中の集計を、決まった間隔と停止時にログへ 1 行ずつ出す。待受けの口は増やさない。</p>
@@ -61,14 +61,14 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="ministrip">応答の中身（2 件）</div>
 <section class="ch02" id="ch02">
 <h1>応答の中身</h1>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261019-05</span> <span class="badge b-ok">済</span> 切り詰めた応答から EDNS の OPT が落ちる</summary>
 <p>UDP の上限を超えた応答を TC 付きの質問部だけに作り直すとき、OPT も落ちていた。問合せ元が EDNS 非対応と誤解すると、以後 512 バイトに下がって切り詰めと TCP の取り直しが増える。DO ビットの返事も落ちる。名前が引けなくなることは無い（TCP で取り直すため）。</p>
 <ul>
 <li><span class="badge b-ok">済</span> 上流の応答の OPT を写す。上流の応答に OPT が無く、問合せに OPT があれば、自分の OPT（大きさ 1232）を付ける</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261019-06</span> <span class="badge b-ok">済</span> UDP に対応していない上流には TCP だけで問い合わせる</summary>
 <p>上流によっては UDP に答えず TCP だけで答える。そのような上流へ UDP を送り続けると、毎回 UDP の待ちが無駄になり、その組は primary が返さない扱いになる。</p>
 <ul>
@@ -81,7 +81,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="ministrip">運用（4 件）</div>
 <section class="ch03" id="ch03">
 <h1>運用</h1>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261019-04</span> <span class="badge b-ok">済</span> 停止と異常の扱い（シグナル・例外・起動の失敗）</summary>
 <p>止め方を問わず、停止時の集計と後片付けを済ませてから終わる。異常は記録し、終了コードを分ける。計画: <a href="../10_plan/i261019-04-停止と異常の扱い.html">停止と異常の扱い</a></p>
 <ul>
@@ -105,7 +105,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-none">未</span> 再び止まったら、期限切れになったテストの名前から原因を調べる</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261020-05</span> <span class="badge b-ok">済</span> Windows の ICS が UDP 53 番を 0.0.0.0 で持っていて、0.0.0.0 で待ち受けられない</summary>
 <p>サービス化の準備中に見つけた。インターネット接続の共有（ICS、サービス名 SharedAccess）が UDP 53 番を 0.0.0.0 で持っていると、0.0.0.0 の 53 番は EADDRINUSE で取れず、サービスは起動の失敗を繰り返す。個別のアドレス（127.0.0.1・LAN 側のアドレス）なら取れる。</p>
 <p>決定（2026-10-20）: 15-B。127.0.0.1 と外向けのアドレスで待ち受ける。ICS は残す。</p>
@@ -117,7 +117,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="ministrip">ログと応答の選び方（4 件）</div>
 <section class="ch04" id="ch04">
 <h1>ログと応答の選び方</h1>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261020-01</span> <span class="badge b-ok">済</span> 問合せのログで OK と NG をはっきり分ける</summary>
 <p>結果の語（resolved・nxdomain 等）が行の途中にあり、成功か失敗かが分かりにくい。日時とレベルの直後に <code>OK</code>／<code>NG</code> を置き、続けて結果の語を 8 文字の幅で揃える。キャッシュから返した行は <code>OK cached</code> にする。</p>
 <p>決定（2026-10-20）: 10-A（NG の表し方は <code>NG</code>）。9-A（OK は INFO、<code>NG nodata</code> は INFO、<code>NG nxdomain</code> は WARN、<code>NG servfail</code> は ERROR。AAAA の nodata は普通に起きるため WARN にしない）。</p>
@@ -126,7 +126,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-ok">済</span> 実装とテスト（<code>src/query-log.ts</code>）、README のログの説明</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261020-02</span> <span class="badge b-ok">済</span> 問合せのログに、解決したアドレスを出す</summary>
 <p>上流ごとに、同じ名前に違う値を返すことがある。どの上流のどの値を返したかを、ログで確かめられるようにする。回答部の A・AAAA のアドレスと、CNAME の行き先を、問合せの行の末尾に出す。</p>
 <ul>
@@ -134,7 +134,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-ok">済</span> 実装とテスト（<code>answerSummary</code>）。実ネットで A・AAAA・CNAME が出ることを確かめた</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261020-03</span> <span class="badge b-ok">済</span> 設定の並び順で、応答の優先順位を付ける</summary>
 <p>設定の上流の組の並び順を優先順位にする。組 1 と組 2 がどちらも解決できたら組 1 の応答を、組 2 と組 3 なら組 2 の応答を返す。いまは最初に返った応答を返すので、後ろの組の応答が先に届くと、そちらが返る。</p>
 <ul>
@@ -143,7 +143,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-ok">済</span> 実装とテスト（<code>priorityWaitMs</code>、既定 300 ms）。実ネットで先頭の組の応答が返ることを確かめた</li>
 </ul>
 </details>
-<details class="md-flat" open>
+<details class="md-flat">
 <summary><span class="no">i261020-04</span> <span class="badge b-ok">済</span> 設定はテンプレートをコミットし、実際に読むファイルはコミットしない</summary>
 <p>実際に読む設定には、社内 DNS の IP アドレスや LAN のサブネットを書くことがある。公開リポジトリに入れないため、テンプレートと実ファイルを分ける（共通ルール「機密情報のマスキング」「非公開フォルダは先頭 _」）。</p>
 <p>決定（2026-10-20）: 13-C（テンプレート <code>config/resolver.example.json</code>、実ファイル <code>config/_resolver.json</code>。先頭 <code>_</code> で <code>.gitignore</code> の <code>_*</code> から外れる）。14-A（実ファイルが無ければ、起動時にテンプレートから写してログに出す）。</p>
