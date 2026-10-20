@@ -69,7 +69,7 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <div class="tablewrap"><table>
 <thead><tr><th>項目</th><th>既定値</th><th>意味</th></tr></thead>
 <tbody>
-<tr><td class="nowrap"><code>listen</code></td><td class="nowrap">0.0.0.0:10053</td><td>待ち受けるアドレスとポート（UDP・TCP 共通）</td></tr>
+<tr><td class="nowrap"><code>listen</code></td><td class="nowrap"><code>hosts</code> 127.0.0.1, outbound ／ <code>port</code> 10053</td><td>待ち受けるアドレス（複数）とポート（UDP・TCP 共通）。<code>outbound</code> は起動時に外向けのアドレス（最初の上流へ送るときの送信元アドレス）に置き換わるので、DHCP でアドレスが変わっても書き直さずに済む（変わったら再起動で追従）。0.0.0.0 は、Windows の ICS（インターネット接続の共有）が UDP 53 番を持っていると取れないので使わない</td></tr>
 <tr><td class="nowrap"><code>allow</code></td><td>127.0.0.0/8, ::1/128, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16</td><td>受け付ける送信元のサブネット。外れた送信元には UDP は返事をせず、TCP は接続を閉じる</td></tr>
 <tr><td class="nowrap"><code>hedgeMs</code></td><td class="nowrap">300</td><td>primary が返さないとき、secondary にも送るまでの時間</td></tr>
 <tr><td class="nowrap"><code>timeoutMs</code></td><td class="nowrap">2000</td><td>1 件の問合せ全体の期限</td></tr>

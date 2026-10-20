@@ -58,7 +58,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <tbody>
 <tr><td>計画</td><td><span class="badge b-ok">済</span></td><td>2026-10-19 承認</td></tr>
 <tr><td>初期化一式</td><td><span class="badge b-ok">済</span></td><td></td></tr>
-<tr><td>実装</td><td><span class="badge b-ok">済</span></td><td>受け口（UDP・TCP）・並列問合せ・キャッシュ・許可リスト・設定・上流ごとの集計のログ・切り詰めた応答の OPT・UDP に答えない上流の TCP 専用化・ログの OK / NG と回答・設定のテンプレート化・設定順の優先</td></tr>
+<tr><td>実装</td><td><span class="badge b-ok">済</span></td><td>受け口（UDP・TCP）・並列問合せ・キャッシュ・許可リスト・設定・上流ごとの集計のログ・切り詰めた応答の OPT・UDP に答えない上流の TCP 専用化・ログの OK / NG と回答・設定のテンプレート化・設定順の優先・複数アドレスでの待受け（127.0.0.1 と外向け）</td></tr>
 <tr><td>停止と異常の扱い</td><td><span class="badge b-ok">済</span></td><td>停止の合図・例外・起動の失敗（終了コード 0 / 1 / 2）</td></tr>
 <tr><td>Windows サービス化</td><td><span class="badge b-warn">着手</span></td><td>定義と導入スクリプトまで。実環境での登録と OS 再起動後の確認が残る</td></tr>
 <tr><td>実ネットでの動作確認</td><td><span class="badge b-ok">済</span></td><td>127.0.0.1:10053 で起動し、<code>tools/50_run/query.ts</code> から UDP・TCP・存在しない名前を確認。127.0.0.1:53 で起動し、Windows の nslookup から UDP・TCP とも確認（課題 i261019-01）</td></tr>
@@ -67,7 +67,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 
 <section class="ch02" id="ch02">
 <h1>テスト</h1>
-<p>2026-10-19: tsc ✅ ／ node --test ✅ 82 件 ／ bun test ✅ 82 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
+<p>2026-10-19: tsc ✅ ／ node --test ✅ 88 件 ／ bun test ✅ 88 件。実行は <code>tools/40_test/run-tests.cmd</code>。</p>
 </section>
 
 <section class="ch03" id="ch03">
