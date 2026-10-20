@@ -19,7 +19,8 @@ export interface Group {
 }
 
 export interface Config {
-	listen: Address;
+	/** 待ち受けるアドレス（IP アドレスか outbound）とポート。すべてのアドレスで同じポートを使う */
+	listen: { hosts: string[]; port: number };
 	/** 受け付ける送信元のサブネット（CIDR） */
 	allow: string[];
 	/** primary が返さないとき、secondary にも送るまでの待ち時間 */
@@ -42,7 +43,8 @@ interface RawGroup {
 }
 
 interface RawConfig {
-	listen?: { host?: string; port?: number };
+	/** host は従来の 1 つだけの書き方 */
+	listen?: { hosts?: string[]; host?: string; port?: number };
 	allow?: string[];
 	hedgeMs?: number;
 	timeoutMs?: number;
@@ -53,8 +55,9 @@ interface RawConfig {
 }
 
 const DEFAULT_RAW = {
-	// LAN にも公開する（送信元は allow で絞る）。開発中は 53 とぶつけないよう高位ポートにする
-	listen: { host: '0.0.0.0', port: 10053 },
+	// この PC と、LAN（外向けのアドレス）で待ち受ける（送信元は allow で絞る）。開発中は 53 とぶつけないよう高位ポートにする
+	// 0.0.0.0 にしないのは、Windows の ICS が UDP 53 番を 0.0.0.0 で持っていると取れないため（i261020-05）
+	listen: { hosts: ['127.0.0.1', 'outbound'], port: 10053 },
 	allow: ['127.0.0.0/8', '::1/128', '10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16'],
 	hedgeMs: 300,
 	timeoutMs: 2000,
@@ -106,7 +109,7 @@ export function parseConfig(input: unknown): Config {
 	if (!Array.isArray(groups) || groups.length === 0) throw new Error('上流の組が 1 つもありません');
 	const config: Config = {
 		listen: {
-			host: raw.listen?.host ?? DEFAULT_RAW.listen.host,
+			hosts: raw.listen?.hosts ?? (raw.listen?.host !== undefined ? [raw.listen.host] : DEFAULT_RAW.listen.hosts),
 			port: port(raw.listen?.port ?? DEFAULT_RAW.listen.port, 'listen'),
 		},
 		allow: raw.allow ?? DEFAULT_RAW.allow,
@@ -124,7 +127,10 @@ export function parseConfig(input: unknown): Config {
 			return { name: g.name ?? `group${i + 1}`, primary: parseAddress(g.primary), secondary: parseAddress(g.secondary), transport };
 		}),
 	};
-	if (!net.isIP(config.listen.host)) throw new Error(`listen.host は IP アドレスにしてください: ${config.listen.host}`);
+	if (!Array.isArray(config.listen.hosts) || config.listen.hosts.length === 0) throw new Error('listen.hosts に待ち受けるアドレスを 1 つ以上書いてください');
+	for (const h of config.listen.hosts) {
+		if (h !== 'outbound' && !net.isIP(h)) throw new Error(`listen.hosts は IP アドレスか outbound にしてください: ${h}`);
+	}
 	if (config.hedgeMs >= config.timeoutMs) throw new Error('hedgeMs は timeoutMs より短くしてください');
 	if (config.priorityWaitMs >= config.timeoutMs) throw new Error('priorityWaitMs は timeoutMs より短くしてください');
 	// 書式の誤りを起動時に見つける

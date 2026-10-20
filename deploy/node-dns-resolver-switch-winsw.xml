@@ -12,6 +12,7 @@
 
     node の複製をサービス名の exe にするのは、プロセス一覧でサービスと見分けられるようにするため。
     設定は config/_resolver.json（Git に入らない。無ければ config/resolver.example.json から写す）。ポートだけ引数で 53 にする。
+    待ち受けるのは 127.0.0.1 と外向けのアドレス（設定の outbound）。外向けのアドレスが変わったら、サービスの再起動で追従する。
   -->
   <executable>node-dns-resolver-switch.exe</executable>
   <arguments>"%BASE%\..\src\main.ts" --port 53</arguments>

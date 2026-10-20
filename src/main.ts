@@ -29,7 +29,11 @@ function loadFromArgs(): Config {
 	const base = loadConfig(configPath);
 	return parseConfig({
 		...base,
-		listen: { host: values.host ?? base.listen.host, port: values.port !== undefined ? Number(values.port) : base.listen.port },
+		// --host はカンマで複数書ける（例 127.0.0.1,outbound）
+		listen: {
+			hosts: values.host !== undefined ? values.host.split(',').map((h) => h.trim()) : base.listen.hosts,
+			port: values.port !== undefined ? Number(values.port) : base.listen.port,
+		},
 		upstreams: base.upstreams.map((g) => ({
 			name: g.name,
 			primary: `[${g.primary.host}]:${g.primary.port}`,
@@ -40,8 +44,10 @@ function loadFromArgs(): Config {
 }
 
 function startupMessage(err: unknown, config: Config | null): string {
-	const where = config ? `${config.listen.host}:${config.listen.port}` : '';
-	const code = (err as NodeJS.ErrnoException)?.code;
+	// 待受けの失敗は、どのアドレスで失敗したかをエラー自身が持っている
+	const e = err as NodeJS.ErrnoException & { address?: string; port?: number };
+	const where = e?.address ? `${e.address}:${e.port}` : config ? `${config.listen.hosts.join(',')}:${config.listen.port}` : '';
+	const code = e?.code;
 	if (code === 'EADDRINUSE') return `起動できません: ${where} は使用中です（ほかのプロセスが待ち受けています）`;
 	if (code === 'EACCES') return `起動できません: ${where} で待ち受ける権限がありません`;
 	if (code === 'EADDRNOTAVAIL') return `起動できません: ${where} はこの PC のアドレスではありません`;
@@ -60,7 +66,7 @@ try {
 
 // 本番とテストを同時に動かしたとき、プロセス一覧で見分けられるようにポートを名前に入れる
 process.title = `dns-resolver-switch:${server.port}`;
-log('INFO', `起動 ${config.listen.host}:${server.port}（UDP・TCP） 上流 ${config.upstreams.length} 組`);
+log('INFO', `起動 ${server.hosts.map((h) => `${h}:${server.port}`).join(', ')}（UDP・TCP） 上流 ${config.upstreams.length} 組`);
 
 installShutdown({
 	source: process,

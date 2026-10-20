@@ -7,6 +7,7 @@ import { buildAllowList } from './cidr.ts';
 import type { Config } from './config.ts';
 import { hasEdns, isResponse, parseQuestion, truncateForUdp, udpLimit } from './dns-message.ts';
 import { consoleLogger, type Logger } from './log.ts';
+import { resolveListenHosts } from './listen.ts';
 import { queryLogLine, type QueryOutcome } from './query-log.ts';
 import { resolveRace, type Attempt } from './race.ts';
 import { UpstreamStats } from './stats.ts';
@@ -14,6 +15,8 @@ import { DEFAULT_TRANSPORT_OPTIONS, TransportModes } from './transport.ts';
 
 export interface RunningServer {
 	port: number;
+	/** 実際に待ち受けているアドレス（outbound を置き換えたあと） */
+	hosts: string[];
 	close(): Promise<void>;
 }
 
@@ -62,9 +65,8 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	};
 
 	let closed = false;
-	const tcp = net.createServer();
 	const sockets = new Set<net.Socket>();
-	tcp.on('connection', (sock) => {
+	const onConnection = (sock: net.Socket) => {
 		if (!allow(sock.remoteAddress ?? '')) {
 			sock.destroy();
 			return;
@@ -89,34 +91,62 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 				}).catch((err) => log('ERROR', `tcp ${from} ${String(err)}`));
 			}
 		});
-	});
+	};
 
-	const udp = dgram.createSocket(net.isIPv6(config.listen.host) ? 'udp6' : 'udp4');
-	udp.on('message', (msg, rinfo) => {
-		if (!allow(rinfo.address)) return;
-		handle(msg, 'udp', rinfo.address).then((res) => {
-			if (!res || closed) return;
-			// 送信先が消えた・停止の途中で閉じた、などの失敗は WARN にとどめる
-			udp.send(truncateForUdp(res, udpLimit(msg), hasEdns(msg)), rinfo.port, rinfo.address, (err) => {
-				if (err) log('WARN', `udp ${rinfo.address} 応答を送れませんでした: ${String(err)}`);
+	const createUdp = (host: string): dgram.Socket => {
+		const udp = dgram.createSocket(net.isIPv6(host) ? 'udp6' : 'udp4');
+		udp.on('message', (msg, rinfo) => {
+			if (!allow(rinfo.address)) return;
+			handle(msg, 'udp', rinfo.address).then((res) => {
+				if (!res || closed) return;
+				// 送信先が消えた・停止の途中で閉じた、などの失敗は WARN にとどめる
+				udp.send(truncateForUdp(res, udpLimit(msg), hasEdns(msg)), rinfo.port, rinfo.address, (err) => {
+					if (err) log('WARN', `udp ${rinfo.address} 応答を送れませんでした: ${String(err)}`);
+				});
+			}).catch((err) => log('ERROR', `udp ${rinfo.address} ${String(err)}`));
+		});
+		return udp;
+	};
+
+	// 待ち受けるアドレスごとに TCP と UDP を開く。outbound は外向けのアドレスに置き換える
+	const hosts = await resolveListenHosts(config.listen.hosts, config.upstreams[0].primary);
+	const tcps: net.Server[] = [];
+	const udps: dgram.Socket[] = [];
+	let port = config.listen.port;
+	const closeAll = async () => {
+		for (const s of sockets) s.destroy();
+		for (const u of udps) await new Promise<void>((r) => { try { u.close(() => r()); } catch { r(); } });
+		for (const t of tcps) await new Promise<void>((r) => t.close(() => r()));
+	};
+	try {
+		for (const host of hosts) {
+			// ポート 0 のときは最初のアドレスの TCP で空きを取り、ほかもすべて同じ番号で待ち受ける
+			const tcp = net.createServer(onConnection);
+			await new Promise<void>((resolve, reject) => {
+				tcp.once('error', reject);
+				tcp.listen(port, host, () => resolve());
 			});
-		}).catch((err) => log('ERROR', `udp ${rinfo.address} ${String(err)}`));
-	});
-	udp.on('error', (err) => log('ERROR', `udp ${String(err)}`));
-
-	// ポート 0 のときは TCP で空きを取り、同じ番号で UDP も待ち受ける
-	await new Promise<void>((resolve, reject) => {
-		tcp.once('error', reject);
-		tcp.listen(config.listen.port, config.listen.host, () => resolve());
-	});
-	const port = (tcp.address() as AddressInfo).port;
-	await new Promise<void>((resolve, reject) => {
-		udp.once('error', reject);
-		udp.bind(port, config.listen.host, () => resolve());
-	});
+			tcps.push(tcp);
+			port = (tcp.address() as AddressInfo).port;
+			const udp = createUdp(host);
+			await new Promise<void>((resolve, reject) => {
+				udp.once('error', reject);
+				udp.bind(port, host, () => resolve());
+			});
+			udp.on('error', (err) => log('ERROR', `udp ${host} ${String(err)}`));
+			udps.push(udp);
+		}
+	} catch (err) {
+		// 一部だけ開いた状態で終わらないよう、開いた分を閉じてから起動の失敗にする
+		await closeAll();
+		await modes.stop();
+		if (statsTimer) clearInterval(statsTimer);
+		throw err;
+	}
 
 	return {
 		port,
+		hosts,
 		// 後片付けの各段は、1 段が失敗しても次の段へ進む
 		close: async () => {
 			if (closed) return;
@@ -124,9 +154,7 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 			if (statsTimer) clearInterval(statsTimer);
 			const steps: Array<[string, () => Promise<void> | void]> = [
 				['集計の記録', () => log('INFO', stats.summary())],
-				['TCP の接続を閉じる', () => { for (const s of sockets) s.destroy(); }],
-				['UDP を閉じる', () => new Promise<void>((r) => udp.close(() => r()))],
-				['TCP を閉じる', () => new Promise<void>((r) => tcp.close(() => r()))],
+				['受け口を閉じる', closeAll],
 				['上流の確かめを止める', () => modes.stop()],
 			];
 			for (const [name, step] of steps) {

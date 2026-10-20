@@ -52,7 +52,7 @@ test('既定の設定は primary / secondary の組を 3 つ持つ', () => {
 test('指定した項目だけを既定値に上書きする', () => {
 	const c = parseConfig({ listen: { port: 5353 }, hedgeMs: 50 });
 	assert.equal(c.listen.port, 5353);
-	assert.equal(c.listen.host, DEFAULT_CONFIG.listen.host);
+	assert.deepEqual(c.listen.hosts, DEFAULT_CONFIG.listen.hosts);
 	assert.equal(c.hedgeMs, 50);
 	assert.equal(c.timeoutMs, DEFAULT_CONFIG.timeoutMs);
 });
@@ -74,6 +74,20 @@ test('優先の待ち時間 priorityWaitMs の既定は 300、0 で止められ�
 	assert.equal(parseConfig({}).priorityWaitMs, 300);
 	assert.equal(parseConfig({ priorityWaitMs: 0 }).priorityWaitMs, 0);
 	assert.throws(() => parseConfig({ priorityWaitMs: 2000, timeoutMs: 2000 }));
+});
+
+test('待受けの既定は 127.0.0.1 と outbound（外向けのアドレス）の 2 つ', () => {
+	assert.deepEqual(parseConfig({}).listen.hosts, ['127.0.0.1', 'outbound']);
+});
+
+test('待受けは hosts に複数書け、従来の host 1 つの書き方も読める', () => {
+	assert.deepEqual(parseConfig({ listen: { hosts: ['127.0.0.1', '192.0.2.10'], port: 53 } }).listen.hosts, ['127.0.0.1', '192.0.2.10']);
+	assert.deepEqual(parseConfig({ listen: { host: '0.0.0.0', port: 53 } }).listen.hosts, ['0.0.0.0']);
+});
+
+test('待受けに IP アドレスと outbound 以外を書いたら例外にする', () => {
+	assert.throws(() => parseConfig({ listen: { hosts: ['lan'] } }));
+	assert.throws(() => parseConfig({ listen: { hosts: [] } }));
 });
 
 test('上流の組が 0 件・待ち時間の逆転は起動時に例外にする', () => {
