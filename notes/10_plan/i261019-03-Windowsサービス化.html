@@ -82,7 +82,7 @@ tools/70_deploy/
 logs/node-dns-resolver-switch/         サービスのログ（除外済み）</code></pre>
 <ul>
 <li>定義の要点: <code>&lt;executable&gt;node-dns-resolver-switch.exe&lt;/executable&gt;</code>、<code>&lt;arguments&gt;"%BASE%\..\src\main.ts" --port 53&lt;/arguments&gt;</code>、<code>&lt;logpath&gt;%BASE%\..\logs\node-dns-resolver-switch&lt;/logpath&gt;</code>、<code>&lt;startmode&gt;Automatic&lt;/startmode&gt;</code></li>
-<li>設定は <code>config/resolver.json</code>（待受け 0.0.0.0、許可リスト）。ポートだけ引数で 53 にする</li>
+<li>設定は <code>config/_resolver.json</code>（待受け 0.0.0.0、許可リスト。i261020-04 でテンプレートと分けた）。ポートだけ引数で 53 にする</li>
 <li><code>.gitignore</code> に <code>deploy/*.exe</code> を足す</li>
 </ul>
 </section>

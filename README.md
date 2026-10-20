@@ -21,7 +21,7 @@
 Node.js（TypeScript をそのまま実行できる版。動作を確かめたのは v26.11.1）。実行時の依存パッケージは無い。
 
 ```shell
-node src/main.ts                                  # config/resolver.json で起動
+node src/main.ts                                  # config/_resolver.json で起動
 node src/main.ts --port 53 --host 0.0.0.0         # 待受けだけを変える
 node src/main.ts --config path/to/resolver.json   # 別の設定で起動
 node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）
@@ -29,7 +29,9 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 
 Windows の nslookup は `-port` を付けても 53 番へ送る。nslookup で確かめるときは 53 番で起動する。
 
-## 設定（config/resolver.json）
+## 設定（config/_resolver.json）
+
+実際に読むのは `config/_resolver.json`。社内 DNS のアドレスや LAN のサブネットを書くことがあるので Git に入れない（先頭の `_` で `.gitignore` から外れる）。無ければ、起動時にテンプレートの `config/resolver.example.json` から写す。項目と既定値は次のとおり。
 
 | 項目 | 既定値 | 意味 |
 |---|---|---|
@@ -102,7 +104,7 @@ tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行
 
 ```text
 src/        本体
-config/     既定の設定
+config/     設定のテンプレート（実際に読む _resolver.json は Git に入らない）
 tests/      テスト
 deploy/     サービスの定義（winsw）
 tools/      テストのランチャ（40_test）・動作確認の道具（50_run）・サービスの導入（70_deploy）

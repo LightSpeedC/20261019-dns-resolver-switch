@@ -46,7 +46,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <div class="titlebar"><div class="inner">
 <h1>計画: 並列問合せ DNS リゾルバ（Node.js）</h1>
 <p class="lead">受けた問合せを複数の上流 DNS へ同時に投げ、最初に返った応答を返す。</p>
-<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-19</p>
+<p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
 <a class="back-home" href="../../README.html" title="README">⌂</a>
@@ -123,7 +123,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
   dns-message.ts   ヘッダ・質問部・TTL の読み書き
   cache.ts         TTL 付きキャッシュ（件数上限あり）
   config.ts        設定の読み込みと既定値
-config/resolver.json  上流・待ち時間・ポート
+config/resolver.example.json  上流・待ち時間・ポート（テンプレート。実際に読むのは _resolver.json。i261020-04）
 tests/              node:test（bun test でも確認）
 tools/40_test/run-tests.ps1 / .cmd</code></pre>
 <ul>

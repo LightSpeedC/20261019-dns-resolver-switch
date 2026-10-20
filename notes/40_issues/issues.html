@@ -33,7 +33,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <body>
 <div class="titlebar"><div class="inner">
 <h1>20261019-dns-resolver-switch 課題</h1>
-<p class="lead">これから解決すること。未 1 件 / 着手 2 件 / 済 7 件。</p>
+<p class="lead">これから解決すること。未 1 件 / 着手 2 件 / 済 8 件。</p>
 <p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
@@ -106,7 +106,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 </ul>
 </details>
 </section>
-<div class="ministrip">ログと応答の選び方（3 件）</div>
+<div class="ministrip">ログと応答の選び方（4 件）</div>
 <section class="ch04" id="ch04">
 <h1>ログと応答の選び方</h1>
 <details class="md-flat" open>
@@ -135,7 +135,14 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li><span class="badge b-none">未</span> 実装とテスト</li>
 </ul>
 </details>
-</section>
+<details class="md-flat" open>
+<summary><span class="no">i261020-04</span> <span class="badge b-ok">済</span> 設定はテンプレートをコミットし、実際に読むファイルはコミットしない</summary>
+<p>実際に読む設定には、社内 DNS の IP アドレスや LAN のサブネットを書くことがある。公開リポジトリに入れないため、テンプレートと実ファイルを分ける（共通ルール「機密情報のマスキング」「非公開フォルダは先頭 _」）。</p>
+<p>決定（2026-10-20）: 13-C（テンプレート <code>config/resolver.example.json</code>、実ファイル <code>config/_resolver.json</code>。先頭 <code>_</code> で <code>.gitignore</code> の <code>_*</code> から外れる）。14-A（実ファイルが無ければ、起動時にテンプレートから写してログに出す）。</p>
+<ul>
+<li><span class="badge b-ok">済</span> テンプレートへの名前の変更、起動口の既定の読み先、写す処理（<code>ensureConfigFile</code>）、テスト、README。起動して写されること、写したファイルが Git から外れることを確かめた</li>
+</ul>
+</details></section>
 </div>
 <footer><a class="back-home" href="../../README.html" title="README">⌂</a></footer>
 </body>

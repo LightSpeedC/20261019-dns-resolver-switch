@@ -23,7 +23,7 @@
 
 ## 2. テスト
 
-2026-10-19: tsc ✅ ／ node --test ✅ 72 件 ／ bun test ✅ 72 件。実行は `tools/40_test/run-tests.cmd`。
+2026-10-19: tsc ✅ ／ node --test ✅ 75 件 ／ bun test ✅ 75 件。実行は `tools/40_test/run-tests.cmd`。
 
 ## 3. 関連資料
 

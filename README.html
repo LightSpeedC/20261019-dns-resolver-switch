@@ -58,13 +58,14 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 
 <h2>使い方</h2>
 <p>Node.js（TypeScript をそのまま実行できる版。動作を確かめたのは v26.11.1）。実行時の依存パッケージは無い。</p>
-<pre><code class="language-shell">node src/main.ts                                  # config/resolver.json で起動
+<pre><code class="language-shell">node src/main.ts                                  # config/_resolver.json で起動
 node src/main.ts --port 53 --host 0.0.0.0         # 待受けだけを変える
 node src/main.ts --config path/to/resolver.json   # 別の設定で起動
 node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP）</code></pre>
 <p>Windows の nslookup は <code>-port</code> を付けても 53 番へ送る。nslookup で確かめるときは 53 番で起動する。</p>
 
-<h2>設定（config/resolver.json）</h2>
+<h2>設定（config/_resolver.json）</h2>
+<p>実際に読むのは <code>config/_resolver.json</code>。社内 DNS のアドレスや LAN のサブネットを書くことがあるので Git に入れない（先頭の <code>_</code> で <code>.gitignore</code> から外れる）。無ければ、起動時にテンプレートの <code>config/resolver.example.json</code> から写す。項目と既定値は次のとおり。</p>
 <div class="tablewrap"><table>
 <thead><tr><th>項目</th><th>既定値</th><th>意味</th></tr></thead>
 <tbody>
@@ -120,7 +121,7 @@ tools/40_test/run-tests.cmd      # tsc・node --test・bun test を順に実行<
 
 <h2>フォルダ構成</h2>
 <pre><code class="language-text">src/        本体
-config/     既定の設定
+config/     設定のテンプレート（実際に読む _resolver.json は Git に入らない）
 tests/      テスト
 deploy/     サービスの定義（winsw）
 tools/      テストのランチャ（40_test）・動作確認の道具（50_run）・サービスの導入（70_deploy）
