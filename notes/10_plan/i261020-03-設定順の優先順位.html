@@ -92,6 +92,11 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <li>先頭の組が遅い・落ちているときは、応答が最大 300 ms 遅れる。キャッシュから返す分は遅れない</li>
 <li>ログの「応答した上流」と所要時間は、返した組と、返した時点までの時間になる</li>
 </ul>
+<h2>実装の結果（2026-10-20）</h2>
+<ul>
+<li>計画どおり実装した（<code>src/race.ts</code>・<code>priorityWaitMs</code>）。テストは例の 5 行と <code>priorityWaitMs: 0</code> の 6 件（<code>tests/priority.test.ts</code>）と、設定の 1 件</li>
+<li>実ネットでは、以前は最も速い quad9 の応答（7 ms 前後）が返っていたのが、先頭の組の google の応答（14〜16 ms）が返るようになった</li>
+</ul>
 <div class="callout"><strong>並び順が意味を持つようになる。</strong>いまの既定の設定（google・cloudflare・quad9）では、google の応答が優先される。社内 DNS などを優先したいときは、その組を先頭に書く。</div>
 </section>
 </div>

@@ -47,7 +47,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 
 <h2>何をするか</h2>
 <ul>
-<li>受けた問合せを、上流の組（primary / secondary の IP アドレスの組。既定は 3 組）へ同時に送り、<strong>最初に解決できた応答</strong>を返す</li>
+<li>受けた問合せを、上流の組（primary / secondary の IP アドレスの組。既定は 3 組）へ同時に送り、<strong>解決できた応答</strong>を返す。複数の組が解決したら、設定の並び順で前の組を優先する（後ろの組が先に解決しても、前の組を最大 300 ms 待つ）</li>
 <li>上流ごとに解決できる範囲が違ってもよい。NXDOMAIN や回答の無い応答は「その上流では解決できなかった」と読み、ほかの組を待つ。<strong>全組が解決できなかったときだけ</strong>、届いた中で最も強い否定（NXDOMAIN ＞ NODATA ＞ SERVFAIL）を返す</li>
 <li>primary が一定時間（既定 300 ms）返さないか解決できなければ、その組の secondary にも送る</li>
 <li>UDP と TCP の両方を同じポートで受ける。上流の応答が切り詰め（TC）なら TCP で取り直す</li>
@@ -74,6 +74,7 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <tr><td class="nowrap"><code>hedgeMs</code></td><td class="nowrap">300</td><td>primary が返さないとき、secondary にも送るまでの時間</td></tr>
 <tr><td class="nowrap"><code>timeoutMs</code></td><td class="nowrap">2000</td><td>1 件の問合せ全体の期限</td></tr>
 <tr><td class="nowrap"><code>cacheMaxEntries</code></td><td class="nowrap">10000</td><td>キャッシュの件数の上限</td></tr>
+<tr><td class="nowrap"><code>priorityWaitMs</code></td><td class="nowrap">300</td><td>後ろの組が先に解決したとき、前の組（<code>upstreams</code> の並び順で前）を待つ上限。0 なら最初に解決した応答を返す</td></tr>
 <tr><td class="nowrap"><code>statsIntervalMs</code></td><td class="nowrap">600000</td><td>上流ごとの集計（送信・応答・勝ち・平均応答時間）をログへ出す間隔。0 で止める。停止時にも出す</td></tr>
 <tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）。<code>transport</code> は <code>auto</code>（既定・確かめて決める）／ <code>udp</code> ／ <code>tcp</code>（決め打ち）</td></tr>
 </tbody></table></div>
