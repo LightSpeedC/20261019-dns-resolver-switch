@@ -70,6 +70,12 @@ test('組ごとの transport は既定が auto、udp・tcp で決め打ちでき
 	assert.throws(() => parseConfig({ upstreams: [{ primary: '192.0.2.1', secondary: '192.0.2.2', transport: 'quic' }] }));
 });
 
+test('優先の待ち時間 priorityWaitMs の既定は 300、0 で止められ、全体の期限以上は例外にする', () => {
+	assert.equal(parseConfig({}).priorityWaitMs, 300);
+	assert.equal(parseConfig({ priorityWaitMs: 0 }).priorityWaitMs, 0);
+	assert.throws(() => parseConfig({ priorityWaitMs: 2000, timeoutMs: 2000 }));
+});
+
 test('上流の組が 0 件・待ち時間の逆転は起動時に例外にする', () => {
 	assert.throws(() => parseConfig({ upstreams: [] }));
 	assert.throws(() => parseConfig({ hedgeMs: 3000, timeoutMs: 1000 }));

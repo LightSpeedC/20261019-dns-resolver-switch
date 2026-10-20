@@ -27,6 +27,8 @@ export interface Config {
 	/** 1 件の問合せ全体の期限。過ぎたら届いた中で最も強い否定か SERVFAIL を返す */
 	timeoutMs: number;
 	cacheMaxEntries: number;
+	/** 後ろの組が先に解決したとき、前の組（設定の並び順で前）を待つ上限。0 で最初に解決した応答を返す */
+	priorityWaitMs: number;
 	/** 上流ごとの集計をログへ出す間隔。0 で止める（停止時には出す） */
 	statsIntervalMs: number;
 	upstreams: Group[];
@@ -45,6 +47,7 @@ interface RawConfig {
 	hedgeMs?: number;
 	timeoutMs?: number;
 	cacheMaxEntries?: number;
+	priorityWaitMs?: number;
 	statsIntervalMs?: number;
 	upstreams?: RawGroup[];
 }
@@ -56,6 +59,7 @@ const DEFAULT_RAW = {
 	hedgeMs: 300,
 	timeoutMs: 2000,
 	cacheMaxEntries: 10000,
+	priorityWaitMs: 300,
 	statsIntervalMs: 600_000,
 	upstreams: [
 		{ name: 'google', primary: '8.8.8.8', secondary: '8.8.4.4' },
@@ -109,6 +113,7 @@ export function parseConfig(input: unknown): Config {
 		hedgeMs: positive(raw.hedgeMs ?? DEFAULT_RAW.hedgeMs, 'hedgeMs'),
 		timeoutMs: positive(raw.timeoutMs ?? DEFAULT_RAW.timeoutMs, 'timeoutMs'),
 		cacheMaxEntries: positive(raw.cacheMaxEntries ?? DEFAULT_RAW.cacheMaxEntries, 'cacheMaxEntries'),
+		priorityWaitMs: nonNegative(raw.priorityWaitMs ?? DEFAULT_RAW.priorityWaitMs, 'priorityWaitMs'),
 		statsIntervalMs: nonNegative(raw.statsIntervalMs ?? DEFAULT_RAW.statsIntervalMs, 'statsIntervalMs'),
 		upstreams: groups.map((g, i) => {
 			if (!g.primary || !g.secondary) throw new Error(`上流の組 ${i + 1} に primary と secondary を書いてください`);
@@ -121,6 +126,7 @@ export function parseConfig(input: unknown): Config {
 	};
 	if (!net.isIP(config.listen.host)) throw new Error(`listen.host は IP アドレスにしてください: ${config.listen.host}`);
 	if (config.hedgeMs >= config.timeoutMs) throw new Error('hedgeMs は timeoutMs より短くしてください');
+	if (config.priorityWaitMs >= config.timeoutMs) throw new Error('priorityWaitMs は timeoutMs より短くしてください');
 	// 書式の誤りを起動時に見つける
 	buildAllowList(config.allow);
 	return config;

@@ -1,5 +1,7 @@
-// 複数の上流の組へ同時に問い合わせ、最初に解決できた応答を返す
+// 複数の上流の組へ同時に問い合わせ、解決できた応答を返す
 // 上流ごとに担当する範囲が違うため、否定の応答はすぐには採用せず、全組が解決できなかったときだけ返す
+// 組の並び順を優先順位にする（i261020-03）。後ろの組が先に解決したら候補として持ち、
+// 前の組がすべて「解決できないと決まる」か、候補を持ってから priorityWaitMs たつまで待つ
 import type { Group } from './config.ts';
 import { buildServfail, classify, readId, withId, type Outcome } from './dns-message.ts';
 import { queryUpstream, type Sender } from './upstream.ts';
@@ -14,6 +16,8 @@ export interface Attempt {
 export interface RaceOptions {
 	hedgeMs: number;
 	timeoutMs: number;
+	/** 後ろの組が先に解決したとき、前の組を待つ上限。0 または省略なら、最初に解決した応答を返す */
+	priorityWaitMs?: number;
 	onAttempt?: (a: Attempt) => void;
 }
 
@@ -41,6 +45,33 @@ export function resolveRace(query: Buffer, groups: Group[], opt: RaceOptions, se
 		let pending = 0;
 		let finished = false;
 		let best: { rank: number; outcome: keyof typeof NEGATIVE_RANK; response: Buffer; winner: string } | null = null;
+		const groupPending = new Map<Group, number>(groups.map((g) => [g, 0]));
+		const resolvedGroups = new Set<Group>();
+		const waitMs = opt.priorityWaitMs ?? 0;
+		let candidate: { index: number; response: Buffer; winner: string } | null = null;
+
+		// 解決できないと決まった組（secondary まで送り、どれも返し終え、解決しなかった）
+		const concluded = (g: Group) => secondaryStarted.has(g) && groupPending.get(g) === 0 && !resolvedGroups.has(g);
+
+		const finishCandidate = () => {
+			if (candidate) finish({ response: withId(candidate.response, id), outcome: 'resolved', winner: candidate.winner });
+		};
+
+		// 候補より前の組がすべて決着していれば、候補を返す
+		const tryCandidate = () => {
+			if (candidate && groups.slice(0, candidate.index).every(concluded)) finishCandidate();
+		};
+
+		const onResolved = (g: Group, response: Buffer, winner: string) => {
+			resolvedGroups.add(g);
+			const index = groups.indexOf(g);
+			if (candidate && candidate.index <= index) return;
+			const first = candidate === null;
+			candidate = { index, response, winner };
+			if (waitMs <= 0) return finishCandidate();
+			if (first) timers.push(setTimeout(finishCandidate, waitMs));
+			tryCandidate();
+		};
 
 		const finish = (r: Omit<RaceResult, 'elapsedMs'>) => {
 			if (finished) return;
@@ -53,6 +84,7 @@ export function resolveRace(query: Buffer, groups: Group[], opt: RaceOptions, se
 		};
 
 		const finishNegative = () => {
+			if (candidate) return finishCandidate();
 			if (best && best.outcome !== 'fail') {
 				finish({ response: withId(best.response, id), outcome: best.outcome, winner: best.winner });
 			} else {
@@ -72,6 +104,11 @@ export function resolveRace(query: Buffer, groups: Group[], opt: RaceOptions, se
 			}
 			const winner = `${g.name}/${which}`;
 			pending++;
+			groupPending.set(g, (groupPending.get(g) ?? 0) + 1);
+			const settle = () => {
+				pending--;
+				groupPending.set(g, (groupPending.get(g) ?? 1) - 1);
+			};
 			const sentAt = Date.now();
 			let reported = false;
 			const report = (result: Attempt['result']) => {
@@ -83,22 +120,24 @@ export function resolveRace(query: Buffer, groups: Group[], opt: RaceOptions, se
 			inFlight.add(report);
 			send(g[which], query, ac.signal).then(
 				(response) => {
-					pending--;
+					settle();
 					const outcome = classify(response);
 					report(outcome);
 					if (finished) return;
-					if (outcome === 'resolved') return finish({ response: withId(response, id), outcome, winner });
+					if (outcome === 'resolved') return onResolved(g, response, winner);
 					const rank = NEGATIVE_RANK[outcome];
 					if (!best || rank > best.rank) best = { rank, outcome, response, winner };
 					// primary が解決できなければ、待ち時間を待たずに secondary へ送る
 					start(g, 'secondary');
+					tryCandidate();
 					checkAllDone();
 				},
 				() => {
-					pending--;
+					settle();
 					report(finished ? 'aborted' : 'error');
 					if (finished) return;
 					start(g, 'secondary');
+					tryCandidate();
 					checkAllDone();
 				},
 			);
