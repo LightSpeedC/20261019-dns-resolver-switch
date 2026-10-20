@@ -77,6 +77,23 @@ node tools/50_run/query.ts example.com A          # 動作確認（--tcp で TCP
 <tr><td class="nowrap"><code>upstreams</code></td><td>google / cloudflare / quad9</td><td>上流の組。<code>name</code>・<code>primary</code>・<code>secondary</code> を IP アドレスで書く（<code>192.0.2.1:5300</code>・<code>[2001:db8::1]:53</code> の形でポートも書ける）。<code>transport</code> は <code>auto</code>（既定・確かめて決める）／ <code>udp</code> ／ <code>tcp</code>（決め打ち）</td></tr>
 </tbody></table></div>
 
+<h2>ログ</h2>
+<p>日時（JST）・レベルの後に、問合せ 1 件ごとに <code>OK</code>／<code>NG</code> と結果を出す。解決したら末尾の <code>=&gt;</code> の後に回答（A・AAAA のアドレス、CNAME の行き先。8 件まで）を出す。</p>
+<pre><code class="language-text">2026/10/20 12:24:01.224 INFO  OK resolved udp 127.0.0.1 www.github.com A quad9/primary 8ms => CNAME github.com, 20.27.177.113
+2026/10/20 12:24:01.318 INFO  OK cached   udp 127.0.0.1 www.github.com A cache 0ms => CNAME github.com, 20.27.177.113
+2026/10/20 12:24:01.672 INFO  NG nodata   udp 127.0.0.1 github.com AAAA quad9/primary 13ms
+2026/10/20 12:24:01.557 WARN  NG nxdomain udp 127.0.0.1 no-such.invalid A quad9/primary 20ms</code></pre>
+<div class="tablewrap"><table>
+<thead><tr><th>結果</th><th>レベル</th><th>意味</th></tr></thead>
+<tbody>
+<tr><td class="nowrap"><code>OK resolved</code></td><td>INFO</td><td>上流が解決した</td></tr>
+<tr><td class="nowrap"><code>OK cached</code></td><td>INFO</td><td>キャッシュから返した</td></tr>
+<tr><td class="nowrap"><code>NG nodata</code></td><td>INFO</td><td>名前はあるが、その型のレコードが無い（IPv4 だけの名前に AAAA を問うと普通に起きる）</td></tr>
+<tr><td class="nowrap"><code>NG nxdomain</code></td><td>WARN</td><td>どの組でも名前が無かった</td></tr>
+<tr><td class="nowrap"><code>NG servfail</code></td><td>ERROR</td><td>どの上流も答えなかった・失敗した</td></tr>
+</tbody></table></div>
+<p>ほかに、10 分ごとの集計（<code>統計</code>）、起動・停止、上流の UDP / TCP の切り替えの行が出る。</p>
+
 <h2>Windows サービスとして動かす</h2>
 <p>サービス ID は <code>node-dns-resolver-switch</code>（表示名 <code>␣dns-resolver-switch DNS リゾルバ</code>。先頭は半角空白）。UDP・TCP の 53 番で待ち受け、OS の起動時に自動で起動する。</p>
 <pre><code class="language-shell">tools/70_deploy/install-service.cmd     # 導入・入れ直し（一般ユーザのコンソールから。自動で管理者へ昇格する）

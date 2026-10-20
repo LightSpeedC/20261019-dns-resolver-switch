@@ -6,8 +6,9 @@
 <style>
 :root{--navy1:#12224d;--navy2:#2f5fbf;--ink:#1c2330;--line:#d9dfe8;--code-bg:#f4f6fa;--link:#1a4fa0;--accent:#12224d;--accent2:#2f5fbf;--soft:#f2f5fb;}
 .ch01{--accent:hsl(280,78%,25%);--accent2:hsl(280,58%,55%);--soft:hsl(280,28%,95%);}
-.ch02{--accent:hsl(140,78%,25%);--accent2:hsl(140,58%,55%);--soft:hsl(140,28%,95%);}
-.ch03{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
+.ch02{--accent:hsl(186.7,78%,25%);--accent2:hsl(186.7,58%,55%);--soft:hsl(186.7,28%,95%);}
+.ch03{--accent:hsl(93.3,78%,25%);--accent2:hsl(93.3,58%,55%);--soft:hsl(93.3,28%,95%);}
+.ch04{--accent:hsl(0,78%,25%);--accent2:hsl(0,58%,55%);--soft:hsl(0,28%,95%);}
 body{margin:0;background:#fff;color:var(--ink);font-size:15.5px;line-height:1.85;font-family:"Segoe UI","Yu Gothic UI",sans-serif;}
 a{color:var(--link,#1a4fa0);background:transparent;}
 .titlebar{background:linear-gradient(135deg,var(--navy1,#12224d),var(--navy2,#2f5fbf));color:#fff;padding:34px 30px 30px;}
@@ -32,7 +33,7 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <body>
 <div class="titlebar"><div class="inner">
 <h1>20261019-dns-resolver-switch 課題</h1>
-<p class="lead">これから解決すること。未 1 件 / 着手 1 件 / 済 5 件。</p>
+<p class="lead">これから解決すること。未 2 件 / 着手 1 件 / 済 7 件。</p>
 <p class="date">📅 作成: 2026-10-19 / 更新: 2026-10-20</p>
 </div></div>
 <div class="wrap">
@@ -102,6 +103,36 @@ footer{max-width:1600px;margin:0 auto;padding:18px 30px 30px;}
 <p>2026-10-20、ランチャで全件を流したとき、node --test が 5 分を過ぎても終わらなかった（止めたのは node のテストの子プロセス 1 本）。その後は 4 回流して 4 回とも 11〜17 秒で通り、ファイルごとでも通った。原因は分かっていない。止まったときに気づけるよう、ランチャのテストに 1 件 30 秒の期限を付けた。</p>
 <ul>
 <li><span class="badge b-none">未</span> 再び止まったら、期限切れになったテストの名前から原因を調べる</li>
+</ul>
+</details>
+</section>
+<div class="ministrip">ログと応答の選び方（3 件）</div>
+<section class="ch04" id="ch04">
+<h1>ログと応答の選び方</h1>
+<details class="md-flat" open>
+<summary><span class="no">i261020-01</span> <span class="badge b-ok">済</span> 問合せのログで OK と NG をはっきり分ける</summary>
+<p>結果の語（resolved・nxdomain 等）が行の途中にあり、成功か失敗かが分かりにくい。日時とレベルの直後に <code>OK</code>／<code>NG</code> を置き、続けて結果の語を 8 文字の幅で揃える。キャッシュから返した行は <code>OK cached</code> にする。</p>
+<p>決定（2026-10-20）: 10-A（NG の表し方は <code>NG</code>）。9-A（OK は INFO、<code>NG nodata</code> は INFO、<code>NG nxdomain</code> は WARN、<code>NG servfail</code> は ERROR。AAAA の nodata は普通に起きるため WARN にしない）。</p>
+<ul>
+<li><span class="badge b-ok">済</span> NG のレベルを決める（9-A）</li>
+<li><span class="badge b-ok">済</span> 実装とテスト（<code>src/query-log.ts</code>）、README のログの説明</li>
+</ul>
+</details>
+<details class="md-flat" open>
+<summary><span class="no">i261020-02</span> <span class="badge b-ok">済</span> 問合せのログに、解決したアドレスを出す</summary>
+<p>上流ごとに、同じ名前に違う値を返すことがある。どの上流のどの値を返したかを、ログで確かめられるようにする。回答部の A・AAAA のアドレスと、CNAME の行き先を、問合せの行の末尾に出す。</p>
+<ul>
+<li><span class="badge b-ok">済</span> 書き方を決める（11-A: 末尾に <code>=&gt;</code> と回答をカンマで並べる。CNAME の行き先も出し、8 件を超えたら「ほか n 件」）</li>
+<li><span class="badge b-ok">済</span> 実装とテスト（<code>answerSummary</code>）。実ネットで A・AAAA・CNAME が出ることを確かめた</li>
+</ul>
+</details>
+<details class="md-flat" open>
+<summary><span class="no">i261020-03</span> <span class="badge b-none">未</span> 設定の並び順で、応答の優先順位を付ける</summary>
+<p>設定の上流の組の並び順を優先順位にする。組 1 と組 2 がどちらも解決できたら組 1 の応答を、組 2 と組 3 なら組 2 の応答を返す。いまは最初に返った応答を返すので、後ろの組の応答が先に届くと、そちらが返る。</p>
+<ul>
+<li><span class="badge b-ok">済</span> 後ろの組が先に解決したとき、前の組をどこまで待つかを決める（12-B: 上限 300 ms）</li>
+<li><span class="badge b-none">未</span> 計画を書き、承認を得る（応答の選び方を変えるため）</li>
+<li><span class="badge b-none">未</span> 実装とテスト</li>
 </ul>
 </details>
 </section>

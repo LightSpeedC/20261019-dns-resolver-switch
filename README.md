@@ -41,6 +41,27 @@ Windows の nslookup は `-port` を付けても 53 番へ送る。nslookup で�
 | `statsIntervalMs` | 600000 | 上流ごとの集計（送信・応答・勝ち・平均応答時間）をログへ出す間隔。0 で止める。停止時にも出す |
 | `upstreams` | google / cloudflare / quad9 | 上流の組。`name`・`primary`・`secondary` を IP アドレスで書く（`192.0.2.1:5300`・`[2001:db8::1]:53` の形でポートも書ける）。`transport` は `auto`（既定・確かめて決める）／ `udp` ／ `tcp`（決め打ち） |
 
+## ログ
+
+日時（JST）・レベルの後に、問合せ 1 件ごとに `OK`／`NG` と結果を出す。解決したら末尾の `=>` の後に回答（A・AAAA のアドレス、CNAME の行き先。8 件まで）を出す。
+
+```text
+2026/10/20 12:24:01.224 INFO  OK resolved udp 127.0.0.1 www.github.com A quad9/primary 8ms => CNAME github.com, 20.27.177.113
+2026/10/20 12:24:01.318 INFO  OK cached   udp 127.0.0.1 www.github.com A cache 0ms => CNAME github.com, 20.27.177.113
+2026/10/20 12:24:01.672 INFO  NG nodata   udp 127.0.0.1 github.com AAAA quad9/primary 13ms
+2026/10/20 12:24:01.557 WARN  NG nxdomain udp 127.0.0.1 no-such.invalid A quad9/primary 20ms
+```
+
+| 結果 | レベル | 意味 |
+|---|---|---|
+| `OK resolved` | INFO | 上流が解決した |
+| `OK cached` | INFO | キャッシュから返した |
+| `NG nodata` | INFO | 名前はあるが、その型のレコードが無い（IPv4 だけの名前に AAAA を問うと普通に起きる） |
+| `NG nxdomain` | WARN | どの組でも名前が無かった |
+| `NG servfail` | ERROR | どの上流も答えなかった・失敗した |
+
+ほかに、10 分ごとの集計（`統計`）、起動・停止、上流の UDP / TCP の切り替えの行が出る。
+
 ## Windows サービスとして動かす
 
 サービス ID は `node-dns-resolver-switch`（表示名 `␣dns-resolver-switch DNS リゾルバ`。先頭は半角空白）。UDP・TCP の 53 番で待ち受け、OS の起動時に自動で起動する。
