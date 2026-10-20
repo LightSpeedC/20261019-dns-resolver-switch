@@ -5,8 +5,9 @@ import type { AddressInfo } from 'node:net';
 import { DnsCache } from './cache.ts';
 import { buildAllowList } from './cidr.ts';
 import type { Config } from './config.ts';
-import { hasEdns, isResponse, parseQuestion, truncateForUdp, typeName, udpLimit } from './dns-message.ts';
+import { hasEdns, isResponse, parseQuestion, truncateForUdp, udpLimit } from './dns-message.ts';
 import { consoleLogger, type Logger } from './log.ts';
+import { queryLogLine, type QueryOutcome } from './query-log.ts';
 import { resolveRace, type Attempt } from './race.ts';
 import { UpstreamStats } from './stats.ts';
 import { DEFAULT_TRANSPORT_OPTIONS, TransportModes } from './transport.ts';
@@ -36,24 +37,27 @@ export async function startServer(config: Config, log: Logger = consoleLogger): 
 	statsTimer?.unref();
 
 	const handle = async (query: Buffer, transport: string, from: string): Promise<Buffer | null> => {
-		let label: string;
+		let question: { name: string; qtype: number };
 		try {
 			if (isResponse(query)) return null;
-			const q = parseQuestion(query);
-			label = `${q.name} ${typeName(q.qtype)}`;
+			question = parseQuestion(query);
 		} catch {
 			// 壊れたメッセージには答えない
 			return null;
 		}
+		const write = (outcome: QueryOutcome, upstream: string | undefined, ms: number, response: Buffer) => {
+			const line = queryLogLine({ outcome, transport, from, name: question.name, qtype: question.qtype, upstream, ms, response });
+			log(line.level, line.message);
+		};
 		const cached = cache.get(query);
 		if (cached) {
-			log('INFO', `${transport} ${from} ${label} resolved cache`);
+			write('cached', 'cache', 0, cached);
 			return cached;
 		}
 		const r = await resolveRace(query, config.upstreams, raceOptions, modes.send);
 		stats.query(r.outcome === 'resolved' ? r.winner : undefined);
 		if (r.outcome === 'resolved') cache.set(query, r.response);
-		log(r.outcome === 'servfail' ? 'WARN' : 'INFO', `${transport} ${from} ${label} ${r.outcome} ${r.winner ?? '-'} ${r.elapsedMs}ms`);
+		write(r.outcome, r.winner, r.elapsedMs, r.response);
 		return r.response;
 	};
 

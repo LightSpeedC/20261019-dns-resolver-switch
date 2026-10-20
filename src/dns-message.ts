@@ -253,6 +253,29 @@ export function hasEdns(query: Buffer): boolean {
 	}
 }
 
+/** 16 バイトの IPv6 を短い表記にする（URL の正規化を使う） */
+function formatIpv6(bytes: Buffer): string {
+	const groups: string[] = [];
+	for (let i = 0; i < 16; i += 2) groups.push(bytes.readUInt16BE(i).toString(16));
+	return new URL(`http://[${groups.join(':')}]/`).hostname.slice(1, -1);
+}
+
+/** ログに出す回答の一覧。A・AAAA はアドレス、CNAME は行き先、それ以外は型の名前。max 件を超えたら残りの件数を書く */
+export function answerSummary(resp: Buffer, max = 8): string {
+	const items: string[] = [];
+	const { an } = records(resp);
+	for (const r of an) {
+		const rdata = r.ttlOffset + 6;
+		const rdlen = r.end - rdata;
+		if (r.type === TYPE.A && rdlen === 4) items.push([...resp.subarray(rdata, rdata + 4)].join('.'));
+		else if (r.type === TYPE.AAAA && rdlen === 16) items.push(formatIpv6(resp.subarray(rdata, rdata + 16)));
+		else if (r.type === TYPE.CNAME) items.push(`CNAME ${readName(resp, rdata).name}`);
+		else items.push(typeName(r.type));
+	}
+	if (items.length <= max) return items.join(', ');
+	return [...items.slice(0, max), `ほか ${items.length - max} 件`].join(', ');
+}
+
 const TYPE_NAMES = new Map<number, string>(Object.entries(TYPE).map(([k, v]) => [v, k]));
 
 export function typeName(qtype: number): string {
